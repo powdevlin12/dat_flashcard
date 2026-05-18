@@ -38,9 +38,19 @@ sealed class Screen(val route: String) {
     }
 
     // ===== Study =====
+    data object StudyModePicker : Screen("study_mode/{deckId}") {
+        fun createRoute(deckId: String) = "study_mode/$deckId"
+        const val ARG_DECK_ID = "deckId"
+    }
+
     data object StudySession : Screen("study/{deckId}/{mode}") {
         fun createRoute(deckId: String, mode: StudyMode) = "study/$deckId/${mode.name}"
         const val ARG_DECK_ID = "deckId"
         const val ARG_MODE = "mode"
+    }
+
+    data object StudyResult : Screen("study_result/{deckId}") {
+        fun createRoute(deckId: String) = "study_result/$deckId"
+        const val ARG_DECK_ID = "deckId"
     }
 }

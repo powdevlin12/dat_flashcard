@@ -14,6 +14,10 @@ import com.dttrn.datfs.feature.deck.CreateEditDeckScreen
 import com.dttrn.datfs.feature.deck.DeckDetailScreen
 import com.dttrn.datfs.feature.home.HomeScreen
 import com.dttrn.datfs.feature.search.SearchScreen
+import com.dttrn.datfs.feature.study.StudyModePickerScreen
+import com.dttrn.datfs.feature.study.StudyResultScreen
+import com.dttrn.datfs.feature.study.StudySessionScreen
+import com.dttrn.datfs.feature.study.StudySessionViewModel
 
 @Composable
 fun NavGraph(
@@ -77,8 +81,7 @@ fun NavGraph(
                     navController.navigate(Screen.CardEditor.createRoute(deckId, cardId))
                 },
                 onStartStudy = { deckId ->
-                    // Phase 3 — placeholder
-                    navController.navigate(Screen.DeckDetail.createRoute(deckId))
+                    navController.navigate(Screen.StudyModePicker.createRoute(deckId))
                 },
             )
         }
@@ -118,7 +121,71 @@ fun NavGraph(
             )
         }
 
-        // ===== Placeholders Phase 3-6 =====
+        // ===== Study Mode Picker =====
+        composable(
+            route = Screen.StudyModePicker.route,
+            arguments = listOf(
+                navArgument(Screen.StudyModePicker.ARG_DECK_ID) { type = NavType.StringType },
+            )
+        ) { backStackEntry ->
+            val deckId = backStackEntry.arguments?.getString(Screen.StudyModePicker.ARG_DECK_ID) ?: return@composable
+            // Fetch deck title via ViewModel or pass directly
+            StudyModePickerScreen(
+                deckTitle = "",  // Will be shown from DeckDetail context
+                onBack = { navController.popBackStack() },
+                onSelectMode = { mode ->
+                    navController.navigate(Screen.StudySession.createRoute(deckId, mode))
+                },
+            )
+        }
+
+        // ===== Study Session =====
+        composable(
+            route = Screen.StudySession.route,
+            arguments = listOf(
+                navArgument(Screen.StudySession.ARG_DECK_ID) { type = NavType.StringType },
+                navArgument(Screen.StudySession.ARG_MODE) { type = NavType.StringType },
+            )
+        ) {
+            StudySessionScreen(
+                onBack = { navController.popBackStack() },
+                onSessionComplete = { deckId ->
+                    navController.navigate(Screen.StudyResult.createRoute(deckId)) {
+                        popUpTo(Screen.StudySession.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ===== Study Result =====
+        composable(
+            route = Screen.StudyResult.route,
+            arguments = listOf(
+                navArgument(Screen.StudyResult.ARG_DECK_ID) { type = NavType.StringType },
+            )
+        ) { backStackEntry ->
+            // Results are retrieved from shared ViewModel scope via parent StudySessionViewModel
+            val deckId = backStackEntry.arguments?.getString(Screen.StudyResult.ARG_DECK_ID) ?: return@composable
+            // Access results from previous screen via BackStack
+            val studyEntry = navController.previousBackStackEntry
+            val sessionVm: StudySessionViewModel? = studyEntry?.let {
+                androidx.hilt.navigation.compose.hiltViewModel(it)
+            }
+            StudyResultScreen(
+                results = sessionVm?.uiState?.value?.sessionResults ?: emptyList(),
+                deckTitle = sessionVm?.uiState?.value?.deckTitle ?: "",
+                onDone = {
+                    navController.popBackStack(Screen.DeckDetail.createRoute(deckId), false)
+                },
+                onStudyAgain = {
+                    navController.navigate(Screen.StudyModePicker.createRoute(deckId)) {
+                        popUpTo(Screen.StudyResult.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ===== Placeholders Phase 4-6 =====
         composable(Screen.Statistics.route) {
             PlaceholderScreen("Thống kê — Phase 4")
         }

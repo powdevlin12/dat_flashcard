@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Thư mục cache để chia sẻ file export tạm thời -->
+    <cache-path
+        name="exported_files"
+        path="exports/" />
+    <!-- Thư mục files để backup -->
+    <files-path
+        name="backup_files"
+        path="backups/" />
+</paths>

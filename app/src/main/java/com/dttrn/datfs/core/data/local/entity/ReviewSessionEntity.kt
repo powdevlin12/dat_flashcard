@@ -41,13 +41,13 @@ data class ReviewSessionEntity(
  * Enum cho các chế độ học — giá trị lưu vào DB dưới dạng String
  */
 enum class StudyMode(val displayName: String) {
-    SWIPE("Lật thẻ"),
-    LEARN("Học thích nghi"),
+    SPACED_REPETITION("Lặp lại ngắt quãng"),
+    LEARN("Học tuần tự"),
     WRITE("Gõ đáp án"),
     QUIZ("Trắc nghiệm"),
     MATCH("Ghép đôi");
 
     companion object {
-        fun fromString(value: String) = entries.firstOrNull { it.name == value } ?: SWIPE
+        fun fromString(value: String) = entries.firstOrNull { it.name == value } ?: SPACED_REPETITION
     }
 }
