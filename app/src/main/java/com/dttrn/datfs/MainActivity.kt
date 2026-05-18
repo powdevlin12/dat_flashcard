@@ -13,10 +13,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.dttrn.datfs.data.preferences.AppTheme
-import com.dttrn.datfs.data.preferences.ThemePreferences
-import com.dttrn.datfs.navigation.AppNavGraph
-import com.dttrn.datfs.ui.theme.HabitJourneyTheme
+import com.dttrn.datfs.core.data.datastore.SettingsDataStore
+import com.dttrn.datfs.navigation.NavGraph
+import com.dttrn.datfs.ui.theme.FlashMindTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -24,19 +23,19 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject
-    lateinit var themePreferences: ThemePreferences
+    lateinit var settingsDataStore: SettingsDataStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val appTheme by themePreferences.theme.collectAsState()
-            val isDark = when (appTheme) {
-                AppTheme.LIGHT -> false
-                AppTheme.DARK -> true
-                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            val theme by settingsDataStore.theme.collectAsState(initial = SettingsDataStore.DEFAULT_THEME)
+            val isDark = when (theme) {
+                "LIGHT" -> false
+                "DARK" -> true
+                else -> isSystemInDarkTheme()
             }
-            HabitJourneyTheme(darkTheme = isDark) {
+            FlashMindTheme(darkTheme = isDark) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -51,5 +50,5 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainApp() {
     val navController = rememberNavController()
-    AppNavGraph(navController = navController)
+    NavGraph(navController = navController)
 }

@@ -11,47 +11,68 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Green80,
-    onPrimary = Green20,
-    primaryContainer = Green30,
-    onPrimaryContainer = Green90,
-    secondary = Teal80,
-    onSecondary = Teal40,
-    background = Color(0xFF1A1C19),
-    onBackground = Color(0xFFE2E3DC),
-    surface = Color(0xFF1A1C19),
-    onSurface = Color(0xFFE2E3DC),
-    surfaceVariant = Color(0xFF424940),
+    primary = Blue80,
+    onPrimary = Blue20,
+    primaryContainer = Blue30,
+    onPrimaryContainer = Blue90,
+    secondary = Purple80,
+    onSecondary = Purple20,
+    secondaryContainer = Purple30,
+    onSecondaryContainer = Purple90,
+    tertiary = Green80,
+    onTertiary = Green20,
+    tertiaryContainer = Green30,
+    onTertiaryContainer = Green90,
+    error = Red80,
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF93000A),
+    onErrorContainer = Red90,
+    background = Color(0xFF131318),
+    onBackground = Color(0xFFE5E1E6),
+    surface = Color(0xFF131318),
+    onSurface = Color(0xFFE5E1E6),
+    surfaceVariant = Color(0xFF49454F),
     onSurfaceVariant = NeutralVariant80,
-    outline = NeutralVariant50
+    outline = NeutralVariant50,
+    outlineVariant = Color(0xFF49454F),
+    scrim = Color(0xFF000000),
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Green40,
+    primary = Blue40,
     onPrimary = Color.White,
-    primaryContainer = Green90,
-    onPrimaryContainer = Green10,
-    secondary = Teal40,
+    primaryContainer = Blue90,
+    onPrimaryContainer = Blue10,
+    secondary = Purple40,
     onSecondary = Color.White,
-    secondaryContainer = Teal90,
-    onSecondaryContainer = Color(0xFF002020),
-    background = Color(0xFFF8FDF5),
-    onBackground = Color(0xFF1A1C19),
-    surface = Color(0xFFF8FDF5),
-    onSurface = Color(0xFF1A1C19),
+    secondaryContainer = Purple90,
+    onSecondaryContainer = Purple10,
+    tertiary = Green40,
+    onTertiary = Color.White,
+    tertiaryContainer = Green90,
+    onTertiaryContainer = Green10,
+    error = Red40,
+    onError = Color.White,
+    errorContainer = Red90,
+    onErrorContainer = Color(0xFF410002),
+    background = Color(0xFFFBF8FF),
+    onBackground = Color(0xFF1C1B1F),
+    surface = Color(0xFFFBF8FF),
+    onSurface = Color(0xFF1C1B1F),
     surfaceVariant = NeutralVariant90,
     onSurfaceVariant = NeutralVariant30,
-    outline = NeutralVariant50
+    outline = NeutralVariant50,
+    outlineVariant = NeutralVariant80,
+    scrim = Color(0xFF000000),
 )
 
 @Composable
-fun HabitJourneyTheme(
+fun FlashMindTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
@@ -75,14 +96,14 @@ fun HabitJourneyTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = HabitTypography,
+        typography = FlashMindTypography,
         content = content
     )
 }
 
-// Alias cho backward compat với file Theme cũ
+// Backward compat aliases
 @Composable
-fun Habit_trackingTheme(
+fun HabitJourneyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
-) = HabitJourneyTheme(darkTheme = darkTheme, content = content)
+) = FlashMindTheme(darkTheme = darkTheme, content = content)

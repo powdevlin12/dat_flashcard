@@ -1,3 +1,64 @@
 <resources>
-    <string name="app_name">DatFS</string>
+    <string name="app_name">FlashMind</string>
+    <string name="app_tagline">Học thông minh, nhớ lâu hơn</string>
+
+    <!-- Deck -->
+    <string name="deck_new">Bộ thẻ mới</string>
+    <string name="deck_edit">Sửa bộ thẻ</string>
+    <string name="deck_delete_confirm">Xóa bộ thẻ này? Tất cả thẻ bên trong cũng sẽ bị xóa.</string>
+    <string name="deck_archive">Lưu trữ</string>
+    <string name="deck_duplicate">Nhân bản</string>
+    <string name="deck_empty">Chưa có bộ thẻ nào.\nTạo bộ thẻ đầu tiên của bạn!</string>
+
+    <!-- Cards -->
+    <string name="card_new">Thẻ mới</string>
+    <string name="card_edit">Sửa thẻ</string>
+    <string name="card_front">Mặt trước</string>
+    <string name="card_back">Mặt sau</string>
+    <string name="card_pronunciation">Phiên âm (tùy chọn)</string>
+    <string name="card_example">Câu ví dụ (tùy chọn)</string>
+    <string name="card_note">Ghi chú (tùy chọn)</string>
+
+    <!-- Study modes -->
+    <string name="mode_swipe">Lật thẻ</string>
+    <string name="mode_learn">Học thích nghi</string>
+    <string name="mode_write">Gõ đáp án</string>
+    <string name="mode_quiz">Trắc nghiệm</string>
+    <string name="mode_match">Ghép đôi</string>
+
+    <!-- Difficulty -->
+    <string name="difficulty_easy">Dễ</string>
+    <string name="difficulty_medium">Vừa</string>
+    <string name="difficulty_hard">Khó</string>
+
+    <!-- Statistics -->
+    <string name="stats_streak">Streak</string>
+    <string name="stats_cards_learned">Đã thuộc</string>
+    <string name="stats_accuracy">Độ chính xác</string>
+    <string name="stats_study_time">Thời gian học</string>
+    <string name="stats_due_today">Cần ôn hôm nay</string>
+
+    <!-- Actions -->
+    <string name="action_save">Lưu</string>
+    <string name="action_cancel">Hủy</string>
+    <string name="action_delete">Xóa</string>
+    <string name="action_confirm">Xác nhận</string>
+    <string name="action_import">Nhập</string>
+    <string name="action_export">Xuất</string>
+    <string name="action_backup">Sao lưu</string>
+    <string name="action_restore">Khôi phục</string>
+    <string name="action_retry">Thử lại</string>
+    <string name="action_start_study">Bắt đầu học</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_review">Nhắc nhở ôn tập</string>
+    <string name="notification_channel_review_desc">Thông báo nhắc bạn ôn thẻ hàng ngày</string>
+    <string name="notification_channel_streak">Nhắc nhở streak</string>
+    <string name="notification_channel_streak_desc">Nhắc bạn duy trì streak học tập</string>
+
+    <!-- Errors -->
+    <string name="error_generic">Đã xảy ra lỗi. Vui lòng thử lại.</string>
+    <string name="error_field_required">Trường này không được để trống</string>
+    <string name="error_too_long">Nội dung quá dài</string>
+    <string name="error_import_invalid_file">File không đúng định dạng .xlsx</string>
 </resources>

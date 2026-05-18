@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose) // Cần thiết cho Kotlin 2.x
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
@@ -9,23 +9,21 @@ plugins {
 
 android {
     namespace = "com.dttrn.datfs"
-
-    // Cách 1: Sử dụng SDK 35 ổn định (Khuyên dùng)
     compileSdk = 36
-
-    // Cách 2: Nếu bạn thực sự muốn dùng Android 16 Preview:
-    /*
-    compileSdkPreview = "Baklava"
-    */
 
     defaultConfig {
         applicationId = "com.dttrn.datfs"
         minSdk = 26
-        targetSdk = 36 // Nên khớp với compileSdk
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Room schema export cho migration tracking
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
     }
 
     buildTypes {
@@ -43,7 +41,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    // Với Kotlin 2.x, dùng compilerOptions thay cho kotlinOptions (nếu có thể)
     kotlinOptions {
         jvmTarget = "11"
     }
@@ -54,9 +51,6 @@ android {
 }
 
 ksp {
-    // Bắt buộc cho KSP2 (2.0.x) để xử lý đúng các kiểu dữ liệu
-//    correctErrorTypes = true
-    // Tắt validation superclass của Hilt để tránh lỗi signature V
     arg("dagger.hilt.android.internal.disableAndroidSuperclassValidation", "true")
 }
 
@@ -86,6 +80,15 @@ dependencies {
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
 
+    // DataStore Preferences
+    implementation(libs.datastore.preferences)
+
+    // Coil image loading
+    implementation(libs.coil.compose)
+
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.android)
+
     // Glance Widget
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
@@ -98,7 +101,11 @@ dependencies {
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Testing
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.room.testing)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
