@@ -1,4 +1,4 @@
-package com.dttrn.habit_tracking.navigation
+package com.dttrn.datfs.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize

@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "habit_tracking"
+rootProject.name = "DatFS"
 include(":app")

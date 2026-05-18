@@ -1,4 +1,4 @@
-package com.dttrn.habit_tracking.ui.theme
+package com.dttrn.datfs.ui.theme
 
 import android.app.Activity
 import android.os.Build

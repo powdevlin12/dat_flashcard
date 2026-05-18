@@ -1,4 +1,4 @@
-package com.dttrn.habit_tracking
+package com.dttrn.datfs
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,10 +13,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.dttrn.habit_tracking.data.preferences.AppTheme
-import com.dttrn.habit_tracking.data.preferences.ThemePreferences
-import com.dttrn.habit_tracking.navigation.AppNavGraph
-import com.dttrn.habit_tracking.ui.theme.HabitJourneyTheme
+import com.dttrn.datfs.data.preferences.AppTheme
+import com.dttrn.datfs.data.preferences.ThemePreferences
+import com.dttrn.datfs.navigation.AppNavGraph
+import com.dttrn.datfs.ui.theme.HabitJourneyTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 

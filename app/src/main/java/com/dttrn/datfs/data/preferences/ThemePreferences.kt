@@ -1,4 +1,4 @@
-package com.dttrn.habit_tracking.data.preferences
+package com.dttrn.datfs.data.preferences
 
 import android.content.Context
 import android.content.SharedPreferences

@@ -1,4 +1,4 @@
-package com.dttrn.habit_tracking.ui.theme
+package com.dttrn.datfs.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

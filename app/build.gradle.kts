@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.dttrn.habit_tracking"
+    namespace = "com.dttrn.datfs"
 
     // Cách 1: Sử dụng SDK 35 ổn định (Khuyên dùng)
     compileSdk = 36
@@ -19,7 +19,7 @@ android {
     */
 
     defaultConfig {
-        applicationId = "com.dttrn.habit_tracking"
+        applicationId = "com.dttrn.datfs"
         minSdk = 26
         targetSdk = 36 // Nên khớp với compileSdk
         versionCode = 1

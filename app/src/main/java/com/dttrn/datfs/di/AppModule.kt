@@ -1,4 +1,4 @@
-package com.dttrn.habit_tracking.di
+package com.dttrn.datfs.di
 
 import dagger.Module
 import dagger.hilt.InstallIn
