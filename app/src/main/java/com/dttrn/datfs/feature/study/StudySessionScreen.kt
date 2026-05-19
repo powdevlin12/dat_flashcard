@@ -257,10 +257,10 @@ private fun SwipeLearnContent(
                 horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SwipeDirectionHint(Icons.Default.ArrowBack, "Quên", Color(0xFFF44336))
+                SwipeDirectionHint(Icons.Default.ArrowBack, "Quên", Color(0xFFF44336), onClick = onSwipeLeft)
                 Text("vuốt", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                SwipeDirectionHint(Icons.Default.ArrowForward, "Nhớ", Color(0xFF4CAF50))
+                SwipeDirectionHint(Icons.Default.ArrowForward, "Nhớ", Color(0xFF4CAF50), onClick = onSwipeRight)
             }
         }
     }
@@ -289,11 +289,18 @@ private fun SwipeDirectionHint(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     color: Color,
+    onClick: () -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
         Icon(icon, null, modifier = Modifier.size(14.dp), tint = color)
-        Spacer(Modifier.width(2.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = color)
+        Spacer(Modifier.width(4.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold)
     }
 }
 

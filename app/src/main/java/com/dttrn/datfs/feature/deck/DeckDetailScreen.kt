@@ -79,7 +79,7 @@ fun DeckDetailScreen(
                 Column(horizontalAlignment = Alignment.End) {
                     // Study button
                     if (uiState.cards.isNotEmpty()) {
-                        SmallFloatingActionButton(
+                        FloatingActionButton(
                             onClick = { deck?.let { onStartStudy(it.id) } },
                             containerColor = MaterialTheme.colorScheme.tertiary,
                         ) {
