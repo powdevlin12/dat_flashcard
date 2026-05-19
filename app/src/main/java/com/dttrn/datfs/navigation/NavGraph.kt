@@ -14,6 +14,10 @@ import com.dttrn.datfs.feature.deck.CreateEditDeckScreen
 import com.dttrn.datfs.feature.deck.DeckDetailScreen
 import com.dttrn.datfs.feature.home.HomeScreen
 import com.dttrn.datfs.feature.search.SearchScreen
+import com.dttrn.datfs.feature.backup.presentation.BackupScreen
+import com.dttrn.datfs.feature.importexport.presentation.ImportExportScreen
+import com.dttrn.datfs.feature.settings.presentation.SettingsScreen
+import com.dttrn.datfs.feature.statistics.presentation.StatisticsScreen
 import com.dttrn.datfs.feature.study.StudyModePickerScreen
 import com.dttrn.datfs.feature.study.StudyResultScreen
 import com.dttrn.datfs.feature.study.StudySessionScreen
@@ -185,18 +189,33 @@ fun NavGraph(
             )
         }
 
-        // ===== Placeholders Phase 4-6 =====
+        // ===== Statistics (Phase 4) =====
         composable(Screen.Statistics.route) {
-            PlaceholderScreen("Thống kê — Phase 4")
+            StatisticsScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
+        // ===== Settings =====
         composable(Screen.Settings.route) {
-            PlaceholderScreen("Cài đặt — Phase 6")
+            SettingsScreen(
+                onNavigateToImportExport = {
+                    navController.navigate(Screen.ImportExport.route)
+                },
+                onNavigateToBackup = {
+                    navController.navigate(Screen.Backup.route)
+                },
+            )
         }
+        // ===== Import/Export (Phase 5) =====
         composable(Screen.ImportExport.route) {
-            PlaceholderScreen("Import/Export — Phase 5")
+            ImportExportScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
         composable(Screen.Backup.route) {
-            PlaceholderScreen("Backup — Phase 5")
+            BackupScreen(
+                onBack = { navController.popBackStack() },
+            )
         }
         composable(Screen.Onboarding.route) {
             PlaceholderScreen("Onboarding — Phase 6")

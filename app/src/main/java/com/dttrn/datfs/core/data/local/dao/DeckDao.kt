@@ -28,6 +28,9 @@ interface DeckDao {
     @Query("SELECT * FROM deck_table WHERE id = :deckId")
     suspend fun getDeckByIdOnce(deckId: String): DeckEntity?
 
+    @Query("SELECT * FROM deck_table WHERE isArchived = 0 ORDER BY updatedAt DESC")
+    suspend fun getActiveDecksOnce(): List<DeckEntity>
+
     @Query("""
         SELECT * FROM deck_table 
         WHERE isArchived = 0 AND (

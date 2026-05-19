@@ -8,13 +8,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.rememberNavController
 import com.dttrn.datfs.core.data.datastore.SettingsDataStore
-import com.dttrn.datfs.navigation.NavGraph
+import com.dttrn.datfs.navigation.MainScaffold
 import com.dttrn.datfs.ui.theme.FlashMindTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -40,15 +38,10 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainApp()
+                    MainScaffold()
                 }
             }
         }
     }
 }
 
-@Composable
-fun MainApp() {
-    val navController = rememberNavController()
-    NavGraph(navController = navController)
-}

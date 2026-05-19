@@ -48,6 +48,22 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            // Apache POI bundles duplicate META-INF files — exclude them
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/*.kotlin_module",
+            )
+        }
+    }
 }
 
 ksp {
@@ -100,6 +116,9 @@ dependencies {
 
     // Kotlinx Serialization
     implementation(libs.kotlinx.serialization.json)
+
+    // Apache POI — Excel Import/Export
+    implementation(libs.apache.poi.ooxml)
 
     // Testing
     testImplementation(libs.junit)
