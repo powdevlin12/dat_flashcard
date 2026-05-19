@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.dttrn.habit_tracking",
+  "applicationId": "com.dttrn.datfs",
   "variantName": "release",
   "elements": [
     {
