@@ -15,17 +15,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dttrn.datfs.core.domain.repository.DeckSortOrder
 import com.dttrn.datfs.ui.components.*
+
+// --- Design tokens từ Stitch FlashMind ---
+private val ColorPrimary = Color(0xFF004AC6)
+private val ColorPrimaryContainer = Color(0xFF2563EB)
+private val ColorSecondary = Color(0xFF712AE2)
+private val ColorSecondaryContainer = Color(0xFF8A4CFC)
+private val ColorBackground = Color(0xFFF7F9FB)
+private val ColorSurface = Color(0xFFFFFFFF)
+private val ColorOnSurface = Color(0xFF191C1E)
+private val ColorOnSurfaceVariant = Color(0xFF434655)
+private val ColorOutlineVariant = Color(0xFFC3C6D7)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +50,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     // ===== Dialogs =====
     if (uiState.showDeleteDialog && uiState.deckToDelete != null) {
@@ -58,31 +69,29 @@ fun HomeScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            HomeTopBar(
-                onSearchClick = onNavigateToSearch,
-                onSettingsClick = onNavigateToSettings,
-                scrollBehavior = scrollBehavior
-            )
-        },
+        containerColor = ColorBackground,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = { Text("Tạo bộ thẻ", fontWeight = FontWeight.SemiBold) },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+            FloatingActionButton(
                 onClick = onCreateDeck,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = RoundedCornerShape(16.dp),
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-            )
+                containerColor = ColorPrimaryContainer,
+                contentColor = Color.White,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 10.dp
+                )
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Tạo bộ thẻ", modifier = Modifier.size(28.dp))
+            }
         },
     ) { paddingValues ->
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center,
-            ) { CircularProgressIndicator() }
+            ) {
+                CircularProgressIndicator(color = ColorPrimaryContainer)
+            }
             return@Scaffold
         }
 
@@ -90,35 +99,55 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(bottom = 100.dp),
         ) {
-            // ===== Header Stats Card =====
+            // ===== Top App Bar =====
             item {
-                HomeStatsCard(
+                HomeTopBar(
+                    onSearchClick = onNavigateToSearch,
+                    onSettingsClick = onNavigateToSettings,
+                )
+            }
+
+            // ===== Greeting + Weekly Stats =====
+            item {
+                GreetingSection(
+                    studyStreak = uiState.studyStreak,
+                    todayDue = uiState.todayDueCount,
+                    modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp),
+                )
+            }
+
+            // ===== Weekly Performance Card =====
+            item {
+                WeeklyPerformanceCard(
                     totalCards = uiState.totalCards,
                     deckCount = uiState.decks.size,
                     todayDue = uiState.todayDueCount,
                     studyStreak = uiState.studyStreak,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    onNavigateToStats = onNavigateToStats,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 24.dp),
                 )
             }
-            
-            // ===== List Title & Sort =====
+
+            // ===== "Your Decks" Header + Sort =====
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp, bottom = 4.dp),
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Danh sách bộ thẻ",
-                        style = MaterialTheme.typography.titleLarge,
+                        text = "Your Decks",
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = ColorOnSurface,
+                        letterSpacing = (-0.3).sp,
                     )
                     SortRow(
                         selectedSort = uiState.selectedSort,
@@ -133,6 +162,7 @@ fun HomeScreen(
                     selectedFilter = uiState.selectedFilter,
                     onFilterChange = viewModel::onFilterChange,
                 )
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             // ===== Deck List =====
@@ -144,22 +174,23 @@ fun HomeScreen(
                                 Icons.Default.LibraryBooks,
                                 contentDescription = null,
                                 modifier = Modifier.size(72.dp),
-                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                tint = ColorPrimaryContainer.copy(alpha = 0.5f),
                             )
                         },
                         title = if (uiState.searchQuery.isNotBlank()) "Không tìm thấy kết quả"
                         else "Chưa có bộ thẻ nào",
                         description = if (uiState.searchQuery.isNotBlank()) "Thử tìm với từ khóa khác"
-                        else "Tạo bộ thẻ đầu tiên để bắt đầu học!",
+                        else "Nhấn + để tạo bộ thẻ đầu tiên!",
                         action = if (uiState.searchQuery.isBlank()) ({
                             Button(
                                 onClick = onCreateDeck,
                                 shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = ColorPrimaryContainer),
                                 modifier = Modifier.padding(top = 8.dp)
-                            ) { 
+                            ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Tạo bộ thẻ ngay") 
+                                Text("Tạo bộ thẻ ngay", fontWeight = FontWeight.SemiBold)
                             }
                         }) else null,
                         modifier = Modifier.padding(vertical = 64.dp),
@@ -180,13 +211,13 @@ fun HomeScreen(
                             onFavoriteToggle = { viewModel.onToggleFavorite(deck) },
                             onMenuClick = { action ->
                                 when (action) {
-                                    DeckMenuAction.EDIT -> onDeckClick(deck.id) // Navigate to edit
+                                    DeckMenuAction.EDIT -> onDeckClick(deck.id)
                                     DeckMenuAction.DUPLICATE -> viewModel.onDuplicateRequest(deck)
                                     DeckMenuAction.ARCHIVE -> viewModel.onArchiveRequest(deck)
                                     DeckMenuAction.DELETE -> viewModel.onDeleteRequest(deck)
                                 }
                             },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
                         )
                     }
                 }
@@ -197,123 +228,63 @@ fun HomeScreen(
 
 // ===== Sub-composables =====
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeTopBar(
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior
 ) {
-    LargeTopAppBar(
-        title = {
-            Column {
-                Text(
-                    "FlashMind",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    "Learn smarter, not harder",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        },
-        actions = {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Brand
+        Column {
+            Text(
+                text = "FlashMind",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = ColorPrimary,
+                letterSpacing = (-0.5).sp,
+            )
+            Text(
+                text = "Learn smarter, not harder",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = ColorOnSurfaceVariant,
+            )
+        }
+        // Actions
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             IconButton(
                 onClick = onSearchClick,
                 modifier = Modifier
-                    .padding(end = 4.dp)
-                    .background(Color.Transparent, shape = CircleShape)
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(ColorSurface)
             ) {
-                Icon(Icons.Default.Search, contentDescription = "Tìm kiếm", tint = MaterialTheme.colorScheme.onSurface)
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Tìm kiếm",
+                    tint = ColorOnSurface,
+                    modifier = Modifier.size(22.dp)
+                )
             }
             IconButton(
                 onClick = onSettingsClick,
                 modifier = Modifier
-                    .padding(end = 8.dp)
-                    .background(Color.Transparent, shape = CircleShape)
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(ColorSurface)
             ) {
-                Icon(Icons.Default.Settings, contentDescription = "Cài đặt", tint = MaterialTheme.colorScheme.onSurface)
-            }
-        },
-        scrollBehavior = scrollBehavior,
-        colors = TopAppBarDefaults.largeTopAppBarColors(
-            containerColor = Color.Transparent,
-            scrolledContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-        )
-    )
-}
-
-@Composable
-private fun HomeStatsCard(
-    totalCards: Int,
-    deckCount: Int,
-    todayDue: Int,
-    studyStreak: Int,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF2563EB), // Vibrant Blue
-                            Color(0xFF7C3AED), // Soft Violet
-                        )
-                    )
-                )
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Text(
-                text = "Tổng quan học tập",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StatItem(
-                    value = deckCount.toString(),
-                    label = "Bộ thẻ",
-                    icon = Icons.Default.Folder,
-                    modifier = Modifier.weight(1f)
-                )
-                StatItem(
-                    value = totalCards.toString(),
-                    label = "Tổng thẻ",
-                    icon = Icons.Default.Style,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StatItem(
-                    value = todayDue.toString(),
-                    label = "Cần ôn",
-                    icon = Icons.Default.Event,
-                    modifier = Modifier.weight(1f)
-                )
-                StatItem(
-                    value = "$studyStreak ngày",
-                    label = "Chuỗi học",
-                    icon = Icons.Default.LocalFireDepartment,
-                    modifier = Modifier.weight(1f)
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "Cài đặt",
+                    tint = ColorOnSurface,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
@@ -321,52 +292,149 @@ private fun HomeStatsCard(
 }
 
 @Composable
-private fun StatItem(
+private fun GreetingSection(
+    studyStreak: Int,
+    todayDue: Int,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = if (studyStreak > 3) "You're on fire! 🔥" else "Good day!",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = ColorOnSurface,
+            letterSpacing = (-0.3).sp,
+        )
+        if (todayDue > 0) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Bạn có $todayDue thẻ cần ôn hôm nay",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = ColorOnSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyPerformanceCard(
+    totalCards: Int,
+    deckCount: Int,
+    todayDue: Int,
+    studyStreak: Int,
+    onNavigateToStats: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        onClick = onNavigateToStats,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(
+                            ColorPrimaryContainer,
+                            ColorSecondaryContainer,
+                        )
+                    ),
+                    shape = RoundedCornerShape(24.dp)
+                )
+                .padding(20.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Weekly Performance",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White.copy(alpha = 0.9f),
+                    )
+                    Icon(
+                        Icons.Default.BarChart,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    MiniStatItem(
+                        value = deckCount.toString(),
+                        label = "Bộ thẻ",
+                        icon = Icons.Default.Folder,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MiniStatItem(
+                        value = totalCards.toString(),
+                        label = "Tổng thẻ",
+                        icon = Icons.Default.Style,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MiniStatItem(
+                        value = todayDue.toString(),
+                        label = "Cần ôn",
+                        icon = Icons.Default.Event,
+                        modifier = Modifier.weight(1f),
+                    )
+                    MiniStatItem(
+                        value = "${studyStreak}d",
+                        label = "Streak",
+                        icon = Icons.Default.LocalFireDepartment,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniStatItem(
     value: String,
     label: String,
     icon: ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.15f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    Column(
+        modifier = modifier
+            .background(Color.White.copy(alpha = 0.15f), shape = RoundedCornerShape(16.dp))
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .background(Color.White.copy(alpha = 0.2f), shape = CircleShape)
-                    .padding(8.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.9f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = value,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
+        )
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.85f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -377,31 +445,34 @@ private fun FilterRow(
     onFilterChange: (DeckFilter) -> Unit,
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(DeckFilter.entries) { filter ->
             FilterChip(
                 selected = selectedFilter == filter,
                 onClick = { onFilterChange(filter) },
-                label = { 
+                label = {
                     Text(
                         text = filter.displayName,
-                        fontWeight = if (selectedFilter == filter) FontWeight.Bold else FontWeight.Medium
-                    ) 
+                        fontWeight = if (selectedFilter == filter) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 13.sp,
+                    )
                 },
                 shape = CircleShape,
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                    containerColor = Color.Transparent,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    selectedContainerColor = ColorPrimary,
+                    selectedLabelColor = Color.White,
+                    containerColor = ColorSurface,
+                    labelColor = ColorOnSurfaceVariant,
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = selectedFilter == filter,
-                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                )
+                    borderColor = ColorOutlineVariant,
+                    selectedBorderColor = Color.Transparent,
+                ),
+                elevation = FilterChipDefaults.filterChipElevation(elevation = 1.dp),
             )
         }
     }
@@ -424,30 +495,28 @@ private fun SortRow(
     Box {
         TextButton(
             onClick = { expanded = true },
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(12.dp)
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+            shape = RoundedCornerShape(10.dp),
         ) {
             Icon(
-                Icons.Default.Sort, 
-                contentDescription = null, 
-                modifier = Modifier.size(18.dp),
-                tint = MaterialTheme.colorScheme.primary
+                Icons.Default.Sort,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = ColorPrimary,
             )
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = sortLabel, 
-                style = MaterialTheme.typography.labelLarge,
+                text = sortLabel,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
+                color = ColorPrimary,
             )
         }
         DropdownMenu(
-            expanded = expanded, 
+            expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(
-                MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp),
-                RoundedCornerShape(12.dp)
-            )
+            modifier = Modifier
+                .background(ColorSurface, RoundedCornerShape(12.dp))
         ) {
             DeckSortOrder.entries.forEach { sort ->
                 DropdownMenuItem(
@@ -461,16 +530,16 @@ private fun SortRow(
                                 DeckSortOrder.CARD_COUNT -> "Số thẻ"
                             },
                             fontWeight = if (sort == selectedSort) FontWeight.Bold else FontWeight.Normal,
-                            color = if (sort == selectedSort) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            color = if (sort == selectedSort) ColorPrimary else ColorOnSurface,
                         )
                     },
                     onClick = { onSortChange(sort); expanded = false },
                     leadingIcon = if (sort == selectedSort) ({
                         Icon(
-                            Icons.Default.Check, 
-                            contentDescription = null, 
-                            modifier = Modifier.size(20.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = ColorPrimary,
                         )
                     }) else null,
                 )
