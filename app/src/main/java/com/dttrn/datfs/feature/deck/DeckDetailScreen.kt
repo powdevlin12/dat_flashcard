@@ -138,7 +138,13 @@ fun DeckDetailScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                    )
                 )
             }
 
@@ -220,12 +226,14 @@ private fun DeckDetailTopBar(
     TopAppBar(
         title = {
             if (isSelectionMode) {
-                Text("$selectedCount/$totalCount đã chọn")
+                Text("$selectedCount/$totalCount đã chọn", fontWeight = FontWeight.Bold)
             } else {
                 Text(
                     deck?.title ?: "Bộ thẻ",
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
                 )
             }
         },
@@ -282,6 +290,9 @@ private fun DeckDetailTopBar(
                 }
             }
         },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+        )
     )
 }
 
@@ -294,25 +305,26 @@ private fun DeckStatsHeader(deck: Deck, cardCount: Int, modifier: Modifier = Mod
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = deckColor.copy(alpha = 0.12f)),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = deckColor.copy(alpha = 0.08f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(24.dp)) {
             if (!deck.description.isNullOrBlank()) {
                 Text(deck.description, style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                 StatChip("$cardCount thẻ", Icons.Default.Style, deckColor)
                 StatChip("${(deck.studyProgress * 100).toInt()}%", Icons.Default.TrendingUp, deckColor)
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(16.dp))
             LinearProgressIndicator(
                 progress = { deck.studyProgress },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
                 color = deckColor,
-                trackColor = deckColor.copy(alpha = 0.2f),
+                trackColor = deckColor.copy(alpha = 0.15f),
             )
         }
     }
@@ -342,8 +354,9 @@ fun FlashcardItem(
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(20.dp),
         border = if (isSelected) ButtonDefaults.outlinedButtonBorder else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 0.dp else 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected)
                 MaterialTheme.colorScheme.primaryContainer
@@ -387,12 +400,12 @@ fun FlashcardItem(
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (card.isKnown) {
                             Box(
-                                Modifier.clip(RoundedCornerShape(4.dp))
-                                    .background(Color(0xFF00C853).copy(alpha = 0.15f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                Modifier.clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
                             ) {
                                 Text("Đã thuộc", style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF00C853))
+                                    color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
                             }
                         }
                     }

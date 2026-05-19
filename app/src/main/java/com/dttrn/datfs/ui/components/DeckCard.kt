@@ -48,8 +48,8 @@ fun DeckCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -150,28 +150,30 @@ fun DeckCard(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "${deck.cardCount} thẻ",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "${(deck.studyProgress * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "${(deck.studyProgress * 100).toInt()}% thành thạo",
+                        style = MaterialTheme.typography.labelMedium,
                         color = deckColor,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
                     progress = { progressAnim },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
                     color = deckColor,
-                    trackColor = deckColor.copy(alpha = 0.15f),
+                    trackColor = deckColor.copy(alpha = 0.1f),
                 )
             }
 

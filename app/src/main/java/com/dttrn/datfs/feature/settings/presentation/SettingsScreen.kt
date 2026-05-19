@@ -27,17 +27,20 @@ fun SettingsScreen(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = {
                     Column {
-                        Text("Cài đặt", fontWeight = FontWeight.Bold)
+                        Text("Cài đặt", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
                         Text(
                             "FlashMind",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = Color.Transparent,
+                )
             )
         },
     ) { padding ->
@@ -134,8 +137,9 @@ private fun SettingsSectionCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Column {
             Row(

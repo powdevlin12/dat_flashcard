@@ -147,10 +147,10 @@ private fun StudySessionTopBar(
         TopAppBar(
             title = {
                 Column {
-                    Text(deckTitle, fontWeight = FontWeight.Bold)
+                    Text(deckTitle, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
                     Text(
                         "${modeLabel(mode)} • $currentIndex/$total thẻ",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -160,6 +160,7 @@ private fun StudySessionTopBar(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Dừng học")
                 }
             },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
         )
         LinearProgressIndicator(
             progress = { progress },
@@ -234,21 +235,24 @@ private fun SwipeLearnContent(
                 ) {
                     OutlinedButton(
                         onClick = onSwipeLeft,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.error)
                     ) {
                         Icon(Icons.Default.Close, null)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Chưa biết")
+                        Spacer(Modifier.width(8.dp))
+                        Text("Chưa biết", fontWeight = FontWeight.Bold)
                     }
                     Button(
                         onClick = onSwipeRight,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                     ) {
                         Icon(Icons.Default.Check, null, tint = Color.White)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Biết rồi", color = Color.White)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Biết rồi", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -279,12 +283,12 @@ private fun RatingButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
+        modifier = modifier.height(48.dp),
         colors = ButtonDefaults.buttonColors(containerColor = color),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         contentPadding = PaddingValues(horizontal = 4.dp),
     ) {
-        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
     }
 }
 
@@ -318,8 +322,9 @@ private fun QuizContent(
         // Question card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(4.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(2.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -329,8 +334,8 @@ private fun QuizContent(
             ) {
                 Text(
                     card.frontText,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
                     textAlign = TextAlign.Center,
                 )
             }
@@ -358,10 +363,10 @@ private fun QuizContent(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
+                    .padding(vertical = 6.dp)
+                    .border(2.dp, borderColor, RoundedCornerShape(16.dp))
                     .clickable(enabled = !uiState.isAnswerRevealed) { onSelectAnswer(option) },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = backgroundColor),
                 elevation = CardDefaults.cardElevation(0.dp),
             ) {
@@ -407,12 +412,14 @@ private fun WriteContent(
         // Question
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(2.dp),
         ) {
             Text(
                 card.frontText,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(32.dp).fillMaxWidth(),
             )
@@ -431,6 +438,13 @@ private fun WriteContent(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus(); onSubmit() }),
             minLines = 3,
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+            )
         )
 
         // Feedback
@@ -474,17 +488,19 @@ private fun WriteContent(
         if (!uiState.isAnswerRevealed) {
             Button(
                 onClick = { focusManager.clearFocus(); onSubmit() },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
                 enabled = uiState.writeAnswer.isNotBlank(),
             ) {
-                Text("Kiểm tra")
+                Text("Kiểm tra", fontWeight = FontWeight.Bold)
             }
         } else {
             Button(
                 onClick = onAdvance,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
             ) {
-                Text("Tiếp theo →")
+                Text("Tiếp theo →", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -546,9 +562,9 @@ private fun MatchItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1.5f)
-            .border(2.dp, borderColor, RoundedCornerShape(12.dp))
+            .border(2.dp, borderColor, RoundedCornerShape(16.dp))
             .clickable(enabled = !item.isMatched, onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         elevation = CardDefaults.cardElevation(0.dp),
     ) {

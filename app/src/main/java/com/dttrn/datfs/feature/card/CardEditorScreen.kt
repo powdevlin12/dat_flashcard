@@ -1,7 +1,10 @@
 package com.dttrn.datfs.feature.card
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -10,6 +13,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -35,7 +39,8 @@ fun CardEditorScreen(
                 title = {
                     Text(
                         if (uiState.isEditing) "Chỉnh sửa thẻ" else "Thêm thẻ mới",
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
                     )
                 },
                 navigationIcon = {
@@ -46,16 +51,21 @@ fun CardEditorScreen(
                 actions = {
                     if (!uiState.isEditing) {
                         TextButton(onClick = { viewModel.onSave(continueAdding = true) }) {
-                            Text("Thêm & tiếp tục")
+                            Text("Thêm & tiếp tục", fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    TextButton(
+                    Button(
                         onClick = { viewModel.onSave() },
                         enabled = !uiState.isLoading,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Text("Lưu", fontWeight = FontWeight.SemiBold)
+                        Text("Lưu", fontWeight = FontWeight.Bold)
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                )
             )
         },
     ) { paddingValues ->
@@ -64,74 +74,78 @@ fun CardEditorScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             // ===== Front =====
-            SectionLabel("Mặt trước *")
-            OutlinedTextField(
-                value = uiState.frontText,
-                onValueChange = viewModel::onFrontTextChange,
-                placeholder = { Text("Từ, câu hỏi, khái niệm...") },
-                isError = uiState.frontError != null,
-                supportingText = uiState.frontError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 6,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel("Mặt trước *")
+                PremiumTextField(
+                    value = uiState.frontText,
+                    onValueChange = viewModel::onFrontTextChange,
+                    placeholder = "Từ, câu hỏi, khái niệm...",
+                    isError = uiState.frontError != null,
+                    errorText = uiState.frontError,
+                    minLines = 3,
+                    maxLines = 6,
+                )
+            }
 
             // ===== Back =====
-            SectionLabel("Mặt sau *")
-            OutlinedTextField(
-                value = uiState.backText,
-                onValueChange = viewModel::onBackTextChange,
-                placeholder = { Text("Định nghĩa, đáp án, nghĩa...") },
-                isError = uiState.backError != null,
-                supportingText = uiState.backError?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3,
-                maxLines = 6,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel("Mặt sau *")
+                PremiumTextField(
+                    value = uiState.backText,
+                    onValueChange = viewModel::onBackTextChange,
+                    placeholder = "Định nghĩa, đáp án, nghĩa...",
+                    isError = uiState.backError != null,
+                    errorText = uiState.backError,
+                    minLines = 3,
+                    maxLines = 6,
+                )
+            }
 
-            HorizontalDivider()
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+            )
 
             // ===== Optional Fields =====
             SectionLabel("Thông tin bổ sung")
 
-            OutlinedTextField(
+            PremiumTextField(
                 value = uiState.pronunciation,
                 onValueChange = viewModel::onPronunciationChange,
-                label = { Text("Phiên âm") },
-                placeholder = { Text("/prəˌnʌnsiˈeɪʃən/") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Phiên âm",
+                placeholder = "/prəˌnʌnsiˈeɪʃən/",
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             )
 
-            OutlinedTextField(
+            PremiumTextField(
                 value = uiState.exampleSentence,
                 onValueChange = viewModel::onExampleChange,
-                label = { Text("Ví dụ") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Ví dụ",
                 minLines = 2,
                 maxLines = 4,
             )
 
-            OutlinedTextField(
+            PremiumTextField(
                 value = uiState.note,
                 onValueChange = viewModel::onNoteChange,
-                label = { Text("Ghi chú") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Ghi chú",
                 minLines = 2,
                 maxLines = 4,
             )
 
             // ===== Difficulty =====
-            SectionLabel("Độ khó")
-            DifficultySelector(
-                selected = uiState.difficultyLevel,
-                onSelect = viewModel::onDifficultyChange,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionLabel("Độ khó")
+                DifficultySelector(
+                    selected = uiState.difficultyLevel,
+                    onSelect = viewModel::onDifficultyChange,
+                )
+            }
 
             if (uiState.isLoading) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
@@ -142,7 +156,7 @@ fun CardEditorScreen(
                     style = MaterialTheme.typography.bodySmall)
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
@@ -153,10 +167,46 @@ private fun SectionLabel(text: String) {
         text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
     )
 }
 
+@Composable
+private fun PremiumTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String? = null,
+    label: String? = null,
+    isError: Boolean = false,
+    errorText: String? = null,
+    minLines: Int = 1,
+    maxLines: Int = 1,
+    singleLine: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = placeholder?.let { { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) } },
+        label = label?.let { { Text(it) } },
+        isError = isError,
+        supportingText = errorText?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
+        modifier = Modifier.fillMaxWidth(),
+        minLines = minLines,
+        maxLines = maxLines,
+        singleLine = singleLine,
+        keyboardOptions = keyboardOptions,
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+        )
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DifficultySelector(selected: Int, onSelect: (Int) -> Unit) {
     val levels = listOf(
@@ -164,17 +214,31 @@ private fun DifficultySelector(selected: Int, onSelect: (Int) -> Unit) {
         2 to "Bình thường",
         3 to "Khó",
     )
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         levels.forEach { (level, label) ->
             FilterChip(
                 selected = selected == level,
                 onClick = { onSelect(level) },
-                label = { Text(label) },
+                label = { Text(label, fontWeight = if (selected == level) FontWeight.Bold else FontWeight.Medium) },
                 leadingIcon = when (level) {
-                    1 -> ({ Icon(Icons.Default.SentimentSatisfied, null, Modifier.size(16.dp)) })
-                    2 -> ({ Icon(Icons.Default.SentimentNeutral, null, Modifier.size(16.dp)) })
-                    else -> ({ Icon(Icons.Default.SentimentDissatisfied, null, Modifier.size(16.dp)) })
+                    1 -> ({ Icon(Icons.Default.SentimentSatisfied, null, Modifier.size(18.dp)) })
+                    2 -> ({ Icon(Icons.Default.SentimentNeutral, null, Modifier.size(18.dp)) })
+                    else -> ({ Icon(Icons.Default.SentimentDissatisfied, null, Modifier.size(18.dp)) })
                 },
+                shape = CircleShape,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = selected == level,
+                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                )
             )
         }
     }

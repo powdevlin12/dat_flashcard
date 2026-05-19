@@ -64,8 +64,8 @@ fun SwipeableCard(
         modifier = modifier
             .offset { IntOffset(offsetX.value.roundToInt(), offsetY.value.roundToInt()) }
             .rotate(rotation)
-            .shadow(12.dp + (absProgress * 8).dp, RoundedCornerShape(24.dp))
-            .clip(RoundedCornerShape(24.dp))
+            .shadow(16.dp + (absProgress * 8).dp, RoundedCornerShape(32.dp), spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+            .clip(RoundedCornerShape(32.dp))
             .background(MaterialTheme.colorScheme.surface)
             .pointerInput(card.id) {
                 detectDragGestures(
@@ -165,8 +165,8 @@ private fun FlipCard(
                 onClick = onFlip,
             ) {
                 CardFaceContent(
-                    label = "FRONT",
-                    labelColor = Color(0xFF4A90E2),
+                    label = "MẶT TRƯỚC",
+                    labelColor = MaterialTheme.colorScheme.primary,
                     text = card.frontText,
                     subText = card.pronunciation,
                     hint = "Nhấn để xem mặt sau",
@@ -182,8 +182,8 @@ private fun FlipCard(
                 onClick = onFlip,
             ) {
                 CardFaceContent(
-                    label = "BACK",
-                    labelColor = Color(0xFF7B61FF),
+                    label = "MẶT SAU",
+                    labelColor = MaterialTheme.colorScheme.secondary,
                     text = card.backText,
                     subText = card.exampleSentence,
                     hint = null,
@@ -211,25 +211,25 @@ private fun CardFaceContent(
         // Label badge
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
+                .clip(androidx.compose.foundation.shape.CircleShape)
                 .background(labelColor.copy(alpha = 0.12f))
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
         ) {
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
                 color = labelColor,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 12.sp,
             )
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(24.dp))
 
         Text(
             text = text,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.ExtraBold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -265,15 +265,15 @@ private fun SwipeHintBadge(
     Box(
         modifier = modifier
             .alpha(alpha)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(androidx.compose.foundation.shape.CircleShape)
             .background(color)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
         Text(
             text,
             color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 14.sp,
         )
     }
 }
