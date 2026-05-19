@@ -8,7 +8,7 @@ import com.dttrn.datfs.core.data.local.entity.StudyMode
  * Hỗ trợ: shuffle, lấy thẻ mới/đã học/quá hạn, theo dõi tiến độ.
  */
 class StudyQueue(
-    private val allCards: List<Flashcard>,
+    val allCards: List<Flashcard>,
     private val mode: StudyMode,
     private val shuffled: Boolean = true,
 ) {

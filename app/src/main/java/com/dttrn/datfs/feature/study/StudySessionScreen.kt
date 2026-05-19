@@ -44,14 +44,6 @@ fun StudySessionScreen(
         if (uiState.isComplete) onSessionComplete(viewModel.deckId)
     }
 
-    // Setup match mode cards once
-    val card = uiState.currentCard
-    LaunchedEffect(viewModel.mode, card) {
-        if (viewModel.mode == StudyMode.MATCH && uiState.matchItems.isEmpty() && card != null) {
-            // No-op: match cards are set up differently (full card list needed)
-        }
-    }
-
     if (uiState.isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -513,22 +505,58 @@ private fun MatchContent(
     uiState: StudySessionUiState,
     onItemClick: (String) -> Unit,
 ) {
+    val matchedCount = uiState.matchItems.count { it.isMatched } / 2
+    val totalPairs = uiState.matchItems.size / 2
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
     ) {
-        Text(
-            "Nối từ với nghĩa đúng",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 8.dp),
-        )
+        // Header with progress
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Nối từ với nghĩa đúng",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (totalPairs > 0) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                ) {
+                    Text(
+                        "$matchedCount/$totalPairs cặp",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    )
+                }
+            }
+        }
+
+        if (uiState.matchItems.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Column
+        }
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f),
         ) {
             items(uiState.matchItems, key = { it.id }) { item ->
                 MatchItemCard(

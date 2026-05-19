@@ -58,7 +58,12 @@ class StudySessionViewModel @Inject constructor(
                             totalCount = result.data.totalCount,
                         )
                     }
-                    loadNextCard()
+                    if (mode == StudyMode.MATCH) {
+                        // MATCH: setup all cards at once, don't use card-by-card flow
+                        setupMatchMode(result.data.allCards)
+                    } else {
+                        loadNextCard()
+                    }
                 }
                 is com.dttrn.datfs.core.domain.common.Result.Error -> {
                     _uiState.update {
@@ -72,6 +77,7 @@ class StudySessionViewModel @Inject constructor(
 
     private fun loadNextCard() {
         val q = queue ?: return
+        if (mode == StudyMode.MATCH) return  // MATCH handles its own state
         val next = q.peek()
         if (next == null) {
             _uiState.update { it.copy(isComplete = true) }
@@ -92,7 +98,6 @@ class StudySessionViewModel @Inject constructor(
             )
         }
         if (mode == StudyMode.QUIZ) generateQuizOptions(next)
-        if (mode == StudyMode.MATCH) { /* handled separately */ }
     }
 
     // ===== SWIPE / LEARN ACTIONS =====
@@ -131,14 +136,17 @@ class StudySessionViewModel @Inject constructor(
 
     private fun generateQuizOptions(card: Flashcard) {
         viewModelScope.launch {
-            // Get all other cards for distractors
-            val allBackTexts = queue?.getReviewedCards()?.map { it.backText } ?: emptyList()
+            // Use full card pool for better distractors (not just reviewed cards)
+            val allBackTexts = queue?.allCards?.map { it.backText } ?: emptyList()
             val distractors = allBackTexts
                 .filter { it != card.backText }
                 .shuffled()
                 .take(3)
-
-            val options = (distractors + card.backText).shuffled()
+            // If not enough distractors, pad with dummy options
+            val padded = if (distractors.size < 3) {
+                distractors + List(3 - distractors.size) { "—" }
+            } else distractors
+            val options = (padded + card.backText).shuffled()
             _uiState.update { it.copy(quizOptions = options) }
         }
     }
@@ -189,7 +197,11 @@ class StudySessionViewModel @Inject constructor(
     // ===== MATCH MODE =====
 
     fun setupMatchMode(allCards: List<Flashcard>) {
-        val take = minOf(allCards.size, 6) // max 6 pairs (12 items)
+        if (allCards.isEmpty()) {
+            _uiState.update { it.copy(error = "Deck không có thẻ nào để ghép đôi") }
+            return
+        }
+        val take = minOf(allCards.size, 6) // max 6 pairs = 12 items
         val selected = allCards.shuffled().take(take)
         val items = mutableListOf<MatchItem>()
         selected.forEach { card ->
@@ -197,48 +209,73 @@ class StudySessionViewModel @Inject constructor(
             items.add(MatchItem(UUID.randomUUID().toString(), card.frontText, MatchItemType.FRONT, pairId))
             items.add(MatchItem(UUID.randomUUID().toString(), card.backText, MatchItemType.BACK, pairId))
         }
-        _uiState.update { it.copy(matchItems = items.shuffled()) }
+        _uiState.update {
+            it.copy(
+                matchItems = items.shuffled(),
+                totalCount = take,    // number of pairs
+                isLoading = false,
+            )
+        }
     }
 
     fun onMatchItemClick(itemId: String) {
         val state = _uiState.value
         val item = state.matchItems.find { it.id == itemId } ?: return
-        if (item.isMatched) return
+        if (item.isMatched || item.isError) return
 
         val selected = state.matchItems.find { it.isSelected }
 
         if (selected == null) {
-            // First selection
+            // First selection — highlight
             _uiState.update {
                 it.copy(matchItems = it.matchItems.map { m ->
                     m.copy(isSelected = m.id == itemId, isError = false)
                 })
             }
         } else if (selected.id == itemId) {
-            // Deselect
+            // Tap same item — deselect
             _uiState.update {
                 it.copy(matchItems = it.matchItems.map { m -> m.copy(isSelected = false) })
             }
         } else {
-            // Check match
+            // Second selection — check match
             val isMatch = selected.cardId == item.cardId && selected.type != item.type
             if (isMatch) {
-                _uiState.update {
-                    it.copy(matchItems = it.matchItems.map { m ->
-                        if (m.id == itemId || m.id == selected.id)
-                            m.copy(isSelected = false, isMatched = true, isError = false)
-                        else m
-                    })
+                val newItems = state.matchItems.map { m ->
+                    if (m.id == itemId || m.id == selected.id)
+                        m.copy(isSelected = false, isMatched = true, isError = false)
+                    else m
                 }
-                // Check if all matched
-                if (_uiState.value.matchItems.all { it.isMatched }) {
+                val allMatched = newItems.all { it.isMatched }
+                _uiState.update { it.copy(matchItems = newItems) }
+
+                if (allMatched) {
                     viewModelScope.launch {
-                        delay(500)
-                        _uiState.update { it.copy(isComplete = true) }
+                        delay(600) // brief pause to show all-green state
+                        // Record results for each matched pair
+                        val matchedCards = queue?.allCards
+                            ?.filter { c -> newItems.any { m -> m.cardId == c.id && m.isMatched } }
+                            ?: emptyList()
+                        val results = matchedCards.map { c ->
+                            CardResult(
+                                card = c,
+                                rating = SM2Algorithm.Ratings.GOOD,
+                                sm2Result = SM2Algorithm.calculate(
+                                    SM2Algorithm.Ratings.GOOD, c.easeFactor, c.intervalDays, c.repetitionCount
+                                ),
+                            )
+                        }
+                        _uiState.update {
+                            it.copy(
+                                sessionResults = results,
+                                reviewedCount = matchedCards.size,
+                                isComplete = true,
+                            )
+                        }
                     }
                 }
             } else {
-                // Error flash
+                // Wrong pair — flash error
                 _uiState.update {
                     it.copy(matchItems = it.matchItems.map { m ->
                         if (m.id == itemId || m.id == selected.id)
