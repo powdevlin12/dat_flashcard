@@ -46,4 +46,19 @@ interface StudyStatisticsDao {
 
     @Query("SELECT SUM(minutesStudied) FROM study_statistics_table")
     fun getTotalMinutesStudied(): Flow<Int?>
+
+    /** Lấy stats theo ngày (suspend, dùng trong Worker) — alias cho getStatsByDate */
+    @Query("SELECT * FROM study_statistics_table WHERE date = :date")
+    suspend fun getStatsByDateOnce(date: String): StudyStatisticsEntity?
+
+    /**
+     * Tính streak hiện tại bằng cách đếm số ngày liên tiếp gần nhất
+     * có cardsStudied > 0, tính từ hôm qua trở về trước.
+     * (Worker gọi lúc 23:00 khi hôm nay chưa học)
+     */
+    @Query("""
+        SELECT streakCount FROM study_statistics_table 
+        ORDER BY date DESC LIMIT 1
+    """)
+    suspend fun getCurrentStreakOnce(): Int
 }

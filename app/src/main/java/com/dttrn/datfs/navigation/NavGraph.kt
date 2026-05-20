@@ -2,13 +2,17 @@ package com.dttrn.datfs.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.dttrn.datfs.core.data.datastore.SettingsDataStore
 import com.dttrn.datfs.feature.card.CardEditorScreen
 import com.dttrn.datfs.feature.deck.CreateEditDeckScreen
 import com.dttrn.datfs.feature.deck.DeckDetailScreen
@@ -16,7 +20,9 @@ import com.dttrn.datfs.feature.home.HomeScreen
 import com.dttrn.datfs.feature.search.SearchScreen
 import com.dttrn.datfs.feature.backup.presentation.BackupScreen
 import com.dttrn.datfs.feature.importexport.presentation.ImportExportScreen
+import com.dttrn.datfs.feature.onboarding.OnboardingScreen
 import com.dttrn.datfs.feature.settings.presentation.SettingsScreen
+import com.dttrn.datfs.feature.splash.SplashScreen
 import com.dttrn.datfs.feature.statistics.presentation.StatisticsScreen
 import com.dttrn.datfs.feature.study.StudyModePickerScreen
 import com.dttrn.datfs.feature.study.StudyResultScreen
@@ -27,13 +33,48 @@ import com.dttrn.datfs.feature.study.StudySessionViewModel
 fun NavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.Home.route,
+    startDestination: String = Screen.Splash.route,
+    settingsDataStore: SettingsDataStore? = null,
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier,
     ) {
+
+        // ===== Splash =====
+        composable(Screen.Splash.route) {
+            val isOnboardingDone by (settingsDataStore?.onboardingDone
+                ?: kotlinx.coroutines.flow.flowOf(true))
+                .collectAsState(initial = true)
+
+            SplashScreen(
+                isOnboardingDone = isOnboardingDone,
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToOnboarding = {
+                    navController.navigate(Screen.Onboarding.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        // ===== Onboarding =====
+        composable(Screen.Onboarding.route) {
+            val onboardingVm: com.dttrn.datfs.feature.onboarding.OnboardingViewModel = hiltViewModel()
+            OnboardingScreen(
+                onFinish = {
+                    onboardingVm.markOnboardingDone()
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                },
+            )
+        }
 
         // ===== Home =====
         composable(Screen.Home.route) {
@@ -133,7 +174,6 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val deckId = backStackEntry.arguments?.getString(Screen.StudyModePicker.ARG_DECK_ID) ?: return@composable
-            // Fetch deck title via ViewModel or pass directly
             StudyModePickerScreen(
                 deckTitle = "",  // Will be shown from DeckDetail context
                 onBack = { navController.popBackStack() },
@@ -168,9 +208,7 @@ fun NavGraph(
                 navArgument(Screen.StudyResult.ARG_DECK_ID) { type = NavType.StringType },
             )
         ) { backStackEntry ->
-            // Results are retrieved from shared ViewModel scope via parent StudySessionViewModel
             val deckId = backStackEntry.arguments?.getString(Screen.StudyResult.ARG_DECK_ID) ?: return@composable
-            // Access results from previous screen via BackStack
             val studyEntry = navController.previousBackStackEntry
             val sessionVm: StudySessionViewModel? = studyEntry?.let {
                 androidx.hilt.navigation.compose.hiltViewModel(it)
@@ -189,12 +227,13 @@ fun NavGraph(
             )
         }
 
-        // ===== Statistics (Phase 4) =====
+        // ===== Statistics =====
         composable(Screen.Statistics.route) {
             StatisticsScreen(
                 onBack = { navController.popBackStack() },
             )
         }
+
         // ===== Settings =====
         composable(Screen.Settings.route) {
             SettingsScreen(
@@ -206,33 +245,19 @@ fun NavGraph(
                 },
             )
         }
-        // ===== Import/Export (Phase 5) =====
+
+        // ===== Import/Export =====
         composable(Screen.ImportExport.route) {
             ImportExportScreen(
                 onBack = { navController.popBackStack() },
             )
         }
+
+        // ===== Backup =====
         composable(Screen.Backup.route) {
             BackupScreen(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(Screen.Onboarding.route) {
-            PlaceholderScreen("Onboarding — Phase 6")
-        }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(label: String) {
-    androidx.compose.foundation.layout.Box(
-        modifier = androidx.compose.ui.Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center,
-    ) {
-        androidx.compose.material3.Text(
-            label,
-            style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

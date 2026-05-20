@@ -1243,6 +1243,7 @@ Elevation: 0dp (flat), 1dp (card), 8dp (modal)
 - [ ] Edge cases handling
 - [ ] UI animations polish
 - [ ] Error handling toàn diện
+- [ ] Dark mode
 
 **Deliverable:** Ứng dụng sẵn sàng production
 

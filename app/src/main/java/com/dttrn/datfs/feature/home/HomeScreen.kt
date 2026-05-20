@@ -28,17 +28,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dttrn.datfs.core.domain.repository.DeckSortOrder
 import com.dttrn.datfs.ui.components.*
 
-// --- Design tokens từ Stitch FlashMind ---
-private val ColorPrimary = Color(0xFF004AC6)
-private val ColorPrimaryContainer = Color(0xFF2563EB)
-private val ColorSecondary = Color(0xFF712AE2)
-private val ColorSecondaryContainer = Color(0xFF8A4CFC)
-private val ColorBackground = Color(0xFFF7F9FB)
-private val ColorSurface = Color(0xFFFFFFFF)
-private val ColorOnSurface = Color(0xFF191C1E)
-private val ColorOnSurfaceVariant = Color(0xFF434655)
-private val ColorOutlineVariant = Color(0xFFC3C6D7)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -69,12 +58,12 @@ fun HomeScreen(
     }
 
     Scaffold(
-        containerColor = ColorBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateDeck,
-                containerColor = ColorPrimaryContainer,
-                contentColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 shape = CircleShape,
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 6.dp,
@@ -90,7 +79,7 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(color = ColorPrimaryContainer)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
             return@Scaffold
         }
@@ -146,7 +135,7 @@ fun HomeScreen(
                         text = "Your Decks",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = ColorOnSurface,
+                        color = MaterialTheme.colorScheme.onBackground,
                         letterSpacing = (-0.3).sp,
                     )
                     SortRow(
@@ -174,7 +163,7 @@ fun HomeScreen(
                                 Icons.Default.LibraryBooks,
                                 contentDescription = null,
                                 modifier = Modifier.size(72.dp),
-                                tint = ColorPrimaryContainer.copy(alpha = 0.5f),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                             )
                         },
                         title = if (uiState.searchQuery.isNotBlank()) "Không tìm thấy kết quả"
@@ -185,7 +174,9 @@ fun HomeScreen(
                             Button(
                                 onClick = onCreateDeck,
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = ColorPrimaryContainer),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
                                 modifier = Modifier.padding(top = 8.dp)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -247,14 +238,14 @@ private fun HomeTopBar(
                 text = "FlashMind",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = ColorPrimary,
+                color = MaterialTheme.colorScheme.primary,
                 letterSpacing = (-0.5).sp,
             )
             Text(
                 text = "Learn smarter, not harder",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = ColorOnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         // Actions
@@ -264,12 +255,12 @@ private fun HomeTopBar(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(ColorSurface)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = "Tìm kiếm",
-                    tint = ColorOnSurface,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -278,12 +269,12 @@ private fun HomeTopBar(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(ColorSurface)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             ) {
                 Icon(
                     Icons.Default.Settings,
                     contentDescription = "Cài đặt",
-                    tint = ColorOnSurface,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -302,7 +293,7 @@ private fun GreetingSection(
             text = if (studyStreak > 3) "You're on fire! 🔥" else "Good day!",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = ColorOnSurface,
+            color = MaterialTheme.colorScheme.onBackground,
             letterSpacing = (-0.3).sp,
         )
         if (todayDue > 0) {
@@ -311,7 +302,7 @@ private fun GreetingSection(
                 text = "Bạn có $todayDue thẻ cần ôn hôm nay",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = ColorOnSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
@@ -339,8 +330,8 @@ private fun WeeklyPerformanceCard(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            ColorPrimaryContainer,
-                            ColorSecondaryContainer,
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary,
                         )
                     ),
                     shape = RoundedCornerShape(24.dp)
@@ -461,15 +452,15 @@ private fun FilterRow(
                 },
                 shape = CircleShape,
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = ColorPrimary,
-                    selectedLabelColor = Color.White,
-                    containerColor = ColorSurface,
-                    labelColor = ColorOnSurfaceVariant,
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
                 border = FilterChipDefaults.filterChipBorder(
                     enabled = true,
                     selected = selectedFilter == filter,
-                    borderColor = ColorOutlineVariant,
+                    borderColor = MaterialTheme.colorScheme.outlineVariant,
                     selectedBorderColor = Color.Transparent,
                 ),
                 elevation = FilterChipDefaults.filterChipElevation(elevation = 1.dp),
@@ -502,21 +493,19 @@ private fun SortRow(
                 Icons.Default.Sort,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = ColorPrimary,
+                tint = MaterialTheme.colorScheme.primary,
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = sortLabel,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = ColorPrimary,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .background(ColorSurface, RoundedCornerShape(12.dp))
         ) {
             DeckSortOrder.entries.forEach { sort ->
                 DropdownMenuItem(
@@ -530,7 +519,8 @@ private fun SortRow(
                                 DeckSortOrder.CARD_COUNT -> "Số thẻ"
                             },
                             fontWeight = if (sort == selectedSort) FontWeight.Bold else FontWeight.Normal,
-                            color = if (sort == selectedSort) ColorPrimary else ColorOnSurface,
+                            color = if (sort == selectedSort) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface,
                         )
                     },
                     onClick = { onSortChange(sort); expanded = false },
@@ -539,7 +529,7 @@ private fun SortRow(
                             Icons.Default.Check,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = ColorPrimary,
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                     }) else null,
                 )

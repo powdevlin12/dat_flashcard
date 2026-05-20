@@ -18,7 +18,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +30,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.dttrn.datfs.core.data.datastore.SettingsDataStore
 
 /**
  * Các tab chính của Bottom Navigation Bar.
@@ -73,6 +73,8 @@ private val bottomNavItems = listOf(
  * Danh sách các route mà Bottom Nav nên ẩn đi (ví dụ: màn học, màn chỉnh sửa...).
  */
 private val routesWithoutBottomBar = setOf(
+    Screen.Splash.route,
+    Screen.Onboarding.route,
     Screen.StudyModePicker.route.substringBefore("{"),
     Screen.StudySession.route.substringBefore("{"),
     Screen.StudyResult.route.substringBefore("{"),
@@ -84,7 +86,9 @@ private val routesWithoutBottomBar = setOf(
 )
 
 @Composable
-fun MainScaffold() {
+fun MainScaffold(
+    settingsDataStore: SettingsDataStore? = null,
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -92,7 +96,7 @@ fun MainScaffold() {
     // Kiểm tra có nên hiển thị bottom nav không
     val showBottomBar = currentDestination?.route?.let { route ->
         routesWithoutBottomBar.none { prefix -> route.startsWith(prefix) }
-    } ?: true
+    } ?: false  // false by default to hide during splash
 
     Scaffold(
         bottomBar = {
@@ -128,6 +132,7 @@ fun MainScaffold() {
             modifier = Modifier
                 .fillMaxSize(),
             navController = navController,
+            settingsDataStore = settingsDataStore,
         )
     }
 }
