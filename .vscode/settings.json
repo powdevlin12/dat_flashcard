@@ -1,0 +1,14 @@
+{
+  // Trỏ VS Code Java extension dùng JDK của Android Studio
+  // để tránh lỗi "jlink executable does not exist"
+  "java.jdt.ls.java.home": "/Applications/Android Studio.app/Contents/jbr/Contents/Home",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "/Applications/Android Studio.app/Contents/jbr/Contents/Home",
+      "default": true
+    }
+  ],
+  // Gradle cũng dùng JDK này
+  "java.import.gradle.java.home": "/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+}

@@ -37,6 +37,7 @@ fun SwipeableCard(
     onFlip: () -> Unit,
     onSwipeLeft: () -> Unit,
     onSwipeRight: () -> Unit,
+    showFrontFirst: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     // Dùng Animatable để control offset an toàn hơn
@@ -135,6 +136,7 @@ fun SwipeableCard(
         FlipCard(
             card = card,
             isFlipped = isFlipped,
+            showFrontFirst = showFrontFirst,
             onFlip = onFlip,
             modifier = Modifier.fillMaxSize(),
         )
@@ -145,6 +147,7 @@ fun SwipeableCard(
 private fun FlipCard(
     card: Flashcard,
     isFlipped: Boolean,
+    showFrontFirst: Boolean,
     onFlip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -156,7 +159,11 @@ private fun FlipCard(
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         if (rotationY <= 90f) {
-            // Front face
+            // Primary face (front or back based on showFrontFirst)
+            val primaryLabel = if (showFrontFirst) "MẶT TRƯỚC" else "MẶT SAU"
+            val primaryLabelColor = if (showFrontFirst) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+            val primaryText = if (showFrontFirst) card.frontText else card.backText
+            val primarySubText = if (showFrontFirst) card.pronunciation else ""
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
@@ -165,15 +172,19 @@ private fun FlipCard(
                 onClick = onFlip,
             ) {
                 CardFaceContent(
-                    label = "MẶT TRƯỚC",
-                    labelColor = MaterialTheme.colorScheme.primary,
-                    text = card.frontText,
-                    subText = card.pronunciation,
-                    hint = "Nhấn để xem mặt sau",
+                    label = primaryLabel,
+                    labelColor = primaryLabelColor,
+                    text = primaryText,
+                    subText = primarySubText,
+                    hint = "Nhấn để xem ${if (showFrontFirst) "mặt sau" else "mặt trước"}",
                 )
             }
         } else {
-            // Back face — corrected mirroring
+            // Secondary face (the other side)
+            val secondaryLabel = if (showFrontFirst) "MẶT SAU" else "MẶT TRƯỚC"
+            val secondaryLabelColor = if (showFrontFirst) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+            val secondaryText = if (showFrontFirst) card.backText else card.frontText
+            val secondarySubText = if (showFrontFirst) card.exampleSentence else card.pronunciation
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
@@ -182,10 +193,10 @@ private fun FlipCard(
                 onClick = onFlip,
             ) {
                 CardFaceContent(
-                    label = "MẶT SAU",
-                    labelColor = MaterialTheme.colorScheme.secondary,
-                    text = card.backText,
-                    subText = card.exampleSentence,
+                    label = secondaryLabel,
+                    labelColor = secondaryLabelColor,
+                    text = secondaryText,
+                    subText = secondarySubText,
                     hint = null,
                 )
             }

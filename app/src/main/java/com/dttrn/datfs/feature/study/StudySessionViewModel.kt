@@ -88,7 +88,7 @@ class StudySessionViewModel @Inject constructor(
                 currentCard = next,
                 currentIndex = q.reviewedCount,
                 progress = q.progress,
-                isFlipped = false,
+                isFlipped = false, // always start unflipped; SwipeableCard handles content order via showFrontFirst
                 isAnswerRevealed = false,
                 selectedAnswer = null,
                 isCorrect = null,
@@ -104,6 +104,15 @@ class StudySessionViewModel @Inject constructor(
 
     fun onFlipCard() {
         _uiState.update { it.copy(isFlipped = !it.isFlipped) }
+    }
+
+    fun onToggleFrontFirst() {
+        _uiState.update {
+            it.copy(
+                showFrontFirst = !it.showFrontFirst,
+                isFlipped = false, // reset current card to show correct primary face
+            )
+        }
     }
 
     /**

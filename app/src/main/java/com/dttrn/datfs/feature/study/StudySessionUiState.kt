@@ -13,6 +13,7 @@ data class StudySessionUiState(
     val totalCount: Int = 0,
     val reviewedCount: Int = 0,
     val isFlipped: Boolean = false,    // For swipe/learn: card flipped?
+    val showFrontFirst: Boolean = true, // true = show front first, false = show back first
     val progress: Float = 0f,
     val error: String? = null,
     val isComplete: Boolean = false,

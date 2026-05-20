@@ -92,6 +92,7 @@ fun StudySessionScreen(
                     onRateGood = { viewModel.onRateCard(SM2Algorithm.Ratings.GOOD) },
                     onRateEasy = { viewModel.onRateCard(SM2Algorithm.Ratings.EASY) },
                     showRatingButtons = true,
+                    onToggleFrontFirst = viewModel::onToggleFrontFirst,
                 )
                 StudyMode.LEARN -> SwipeLearnContent(
                     uiState = uiState,
@@ -103,6 +104,7 @@ fun StudySessionScreen(
                     onRateGood = { viewModel.onRateCard(SM2Algorithm.Ratings.GOOD) },
                     onRateEasy = { viewModel.onRateCard(SM2Algorithm.Ratings.EASY) },
                     showRatingButtons = false,
+                    onToggleFrontFirst = viewModel::onToggleFrontFirst,
                 )
                 StudyMode.QUIZ -> QuizContent(
                     uiState = uiState,
@@ -183,6 +185,7 @@ private fun SwipeLearnContent(
     onRateGood: () -> Unit,
     onRateEasy: () -> Unit,
     showRatingButtons: Boolean,
+    onToggleFrontFirst: () -> Unit,
 ) {
     val card = uiState.currentCard ?: return
 
@@ -192,10 +195,18 @@ private fun SwipeLearnContent(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        // Front/Back toggle pill
+        FrontBackToggle(
+            showFrontFirst = uiState.showFrontFirst,
+            onToggle = onToggleFrontFirst,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+
         // Card
         SwipeableCard(
             card = card,
             isFlipped = uiState.isFlipped,
+            showFrontFirst = uiState.showFrontFirst,
             onFlip = onFlip,
             onSwipeLeft = onSwipeLeft,
             onSwipeRight = onSwipeRight,
@@ -301,6 +312,51 @@ private fun SwipeDirectionHint(
         Icon(icon, null, modifier = Modifier.size(14.dp), tint = color)
         Spacer(Modifier.width(4.dp))
         Text(label, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold)
+    }
+}
+
+// ===== FRONT/BACK TOGGLE =====
+
+@Composable
+private fun FrontBackToggle(
+    showFrontFirst: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val options = listOf("Mặt trước → Mặt sau", "Mặt sau → Mặt trước")
+    val selectedIndex = if (showFrontFirst) 0 else 1
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            options.forEachIndexed { index, label ->
+                val isSelected = index == selectedIndex
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else Color.Transparent,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50.dp))
+                        .clickable { if (!isSelected) onToggle() },
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                    )
+                }
+            }
+        }
     }
 }
 
