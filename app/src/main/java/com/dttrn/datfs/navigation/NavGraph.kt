@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -209,13 +210,12 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val deckId = backStackEntry.arguments?.getString(Screen.StudyResult.ARG_DECK_ID) ?: return@composable
-            val studyEntry = navController.previousBackStackEntry
-            val sessionVm: StudySessionViewModel? = studyEntry?.let {
-                androidx.hilt.navigation.compose.hiltViewModel(it)
-            }
+            // Read results from companion object (populated before session completed)
+            val results = remember { StudySessionViewModel.pendingResults }
+            val deckTitle = remember { StudySessionViewModel.pendingDeckTitle }
             StudyResultScreen(
-                results = sessionVm?.uiState?.value?.sessionResults ?: emptyList(),
-                deckTitle = sessionVm?.uiState?.value?.deckTitle ?: "",
+                results = results,
+                deckTitle = deckTitle,
                 onDone = {
                     navController.popBackStack(Screen.DeckDetail.createRoute(deckId), false)
                 },

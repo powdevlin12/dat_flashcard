@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dttrn.datfs.core.data.local.entity.StudyMode
 import com.dttrn.datfs.core.domain.study.SM2Algorithm
+import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
 fun StudySessionScreen(
@@ -73,8 +74,13 @@ fun StudySessionScreen(
                 total = uiState.totalCount,
                 progress = uiState.progress,
                 isShuffled = uiState.isShuffled,
+                isRangeApplied = uiState.isRangeApplied,
+                rangeFrom = uiState.rangeFrom,
+                rangeTo = uiState.rangeTo,
+                originalTotal = uiState.originalTotalCount,
                 onBack = onBack,
                 onShuffle = viewModel::onShuffleCards,
+                onRangeFilter = viewModel::onShowRangeDialog,
             )
         },
     ) { paddingValues ->
@@ -125,6 +131,19 @@ fun StudySessionScreen(
             }
         }
     }
+
+    // Range selection dialog
+    if (uiState.showRangeDialog) {
+        RangeSelectionDialog(
+            originalTotal = uiState.originalTotalCount,
+            initialFrom = uiState.rangeFrom ?: 1,
+            initialTo = uiState.rangeTo ?: uiState.originalTotalCount,
+            isRangeApplied = uiState.isRangeApplied,
+            onApply = viewModel::onApplyRange,
+            onClear = viewModel::onClearRange,
+            onDismiss = viewModel::onDismissRangeDialog,
+        )
+    }
 }
 
 // ===== TOP BAR =====
@@ -138,18 +157,31 @@ private fun StudySessionTopBar(
     total: Int,
     progress: Float,
     isShuffled: Boolean,
+    isRangeApplied: Boolean,
+    rangeFrom: Int?,
+    rangeTo: Int?,
+    originalTotal: Int,
     onBack: () -> Unit,
     onShuffle: () -> Unit,
+    onRangeFilter: () -> Unit,
 ) {
     Column {
         TopAppBar(
             title = {
                 Column {
                     Text(deckTitle, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleLarge)
+                    val subtitle = buildString {
+                        append(modeLabel(mode))
+                        append(" • $currentIndex/$total thẻ")
+                        if (isRangeApplied && rangeFrom != null && rangeTo != null) {
+                            append(" (vị trí $rangeFrom–$rangeTo/$originalTotal)")
+                        }
+                    }
                     Text(
-                        "${modeLabel(mode)} • $currentIndex/$total thẻ",
+                        subtitle,
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isRangeApplied) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },
@@ -159,6 +191,16 @@ private fun StudySessionTopBar(
                 }
             },
             actions = {
+                // Range filter button
+                IconButton(onClick = onRangeFilter) {
+                    Icon(
+                        Icons.Default.FilterList,
+                        contentDescription = "Chọn phạm vi thẻ",
+                        tint = if (isRangeApplied) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                // Shuffle button
                 IconButton(onClick = onShuffle) {
                     Icon(
                         Icons.Default.Shuffle,
@@ -685,4 +727,151 @@ private fun MatchItemCard(
             )
         }
     }
+}
+
+// ===== RANGE SELECTION DIALOG =====
+
+@Composable
+private fun RangeSelectionDialog(
+    originalTotal: Int,
+    initialFrom: Int,
+    initialTo: Int,
+    isRangeApplied: Boolean,
+    onApply: (from: Int, to: Int) -> Unit,
+    onClear: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var fromText by remember { mutableStateOf(initialFrom.toString()) }
+    var toText by remember { mutableStateOf(initialTo.toString()) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                Icons.Default.FilterList,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp),
+            )
+        },
+        title = {
+            Text(
+                "Chọn phạm vi học",
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "Tổng số thẻ: $originalTotal. Chọn vị trí bắt đầu và kết thúc để học một phần.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedTextField(
+                        value = fromText,
+                        onValueChange = { fromText = it; errorMessage = null },
+                        label = { Text("Từ vị trí") },
+                        placeholder = { Text("1") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next,
+                        ),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    Text("→", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = toText,
+                        onValueChange = { toText = it; errorMessage = null },
+                        label = { Text("Đến vị trí") },
+                        placeholder = { Text("$originalTotal") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done,
+                        ),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                }
+
+                // Preview count
+                val from = fromText.toIntOrNull()
+                val to = toText.toIntOrNull()
+                if (from != null && to != null && from in 1..originalTotal && to >= from && to <= originalTotal) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    ) {
+                        Text(
+                            "Sẽ học ${to - from + 1} thẻ (vị trí $from → $to)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+
+                // Error message
+                errorMessage?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
+                // Clear range button (if range is applied)
+                if (isRangeApplied) {
+                    OutlinedButton(
+                        onClick = onClear,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                        ),
+                    ) {
+                        Icon(Icons.Default.ClearAll, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Xóa bộ lọc — học tất cả", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val from = fromText.toIntOrNull()
+                    val to = toText.toIntOrNull()
+                    when {
+                        from == null || to == null -> errorMessage = "Vui lòng nhập số hợp lệ"
+                        from < 1 -> errorMessage = "Vị trí bắt đầu phải ≥ 1"
+                        to > originalTotal -> errorMessage = "Vị trí kết thúc phải ≤ $originalTotal"
+                        from > to -> errorMessage = "Vị trí bắt đầu phải ≤ vị trí kết thúc"
+                        else -> onApply(from, to)
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text("Áp dụng", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy")
+            }
+        },
+    )
 }

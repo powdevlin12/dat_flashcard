@@ -31,6 +31,12 @@ data class StudySessionUiState(
     // Match specific
     val matchItems: List<MatchItem> = emptyList(),
     val selectedMatchId: String? = null,
+    // Range selection
+    val showRangeDialog: Boolean = false,
+    val originalTotalCount: Int = 0,    // Total cards before range filter
+    val rangeFrom: Int? = null,         // 1-indexed start position (null = no range applied)
+    val rangeTo: Int? = null,           // 1-indexed end position
+    val isRangeApplied: Boolean = false,
 )
 
 data class CardResult(

@@ -26,11 +26,18 @@ class StudySessionViewModel @Inject constructor(
     private val submitReviewUseCase: SubmitReviewUseCase,
 ) : ViewModel() {
 
+    companion object {
+        /** Temporary holder for passing results to StudyResultScreen */
+        internal var pendingResults: List<CardResult> = emptyList()
+        internal var pendingDeckTitle: String = ""
+    }
+
     val deckId: String = checkNotNull(savedStateHandle[Screen.StudySession.ARG_DECK_ID])
     private val modeArg: String = checkNotNull(savedStateHandle[Screen.StudySession.ARG_MODE])
     val mode: StudyMode = runCatching { StudyMode.valueOf(modeArg) }.getOrDefault(StudyMode.SPACED_REPETITION)
 
     private var queue: StudyQueue? = null
+    private var allOriginalCards: List<Flashcard> = emptyList()  // All cards before range filter
 
     private val _uiState = MutableStateFlow(StudySessionUiState())
     val uiState: StateFlow<StudySessionUiState> = _uiState.asStateFlow()
@@ -52,10 +59,12 @@ class StudySessionViewModel @Inject constructor(
             when (val result = getStudyQueueUseCase(deckId, mode)) {
                 is com.dttrn.datfs.core.domain.common.Result.Success -> {
                     queue = result.data
+                    allOriginalCards = result.data.allCards
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             totalCount = result.data.totalCount,
+                            originalTotalCount = result.data.totalCount,
                         )
                     }
                     if (mode == StudyMode.MATCH) {
@@ -80,6 +89,9 @@ class StudySessionViewModel @Inject constructor(
         if (mode == StudyMode.MATCH) return  // MATCH handles its own state
         val next = q.peek()
         if (next == null) {
+            // Store results before completing so StudyResult can read them
+            pendingResults = _uiState.value.sessionResults
+            pendingDeckTitle = _uiState.value.deckTitle
             _uiState.update { it.copy(isComplete = true) }
             return
         }
@@ -280,6 +292,9 @@ class StudySessionViewModel @Inject constructor(
                                 ),
                             )
                         }
+                        // Store results before completing
+                        pendingResults = results
+                        pendingDeckTitle = _uiState.value.deckTitle
                         _uiState.update {
                             it.copy(
                                 sessionResults = results,
@@ -309,4 +324,70 @@ class StudySessionViewModel @Inject constructor(
     }
 
     fun onErrorDismissed() = _uiState.update { it.copy(error = null) }
+
+    // ===== RANGE SELECTION =====
+
+    fun onShowRangeDialog() {
+        _uiState.update {
+            it.copy(
+                showRangeDialog = true,
+                rangeFrom = it.rangeFrom ?: 1,
+                rangeTo = it.rangeTo ?: it.originalTotalCount,
+            )
+        }
+    }
+
+    fun onDismissRangeDialog() {
+        _uiState.update { it.copy(showRangeDialog = false) }
+    }
+
+    fun onApplyRange(from: Int, to: Int) {
+        if (allOriginalCards.isEmpty()) return
+        val safeFrom = from.coerceIn(1, allOriginalCards.size)
+        val safeTo = to.coerceIn(safeFrom, allOriginalCards.size)
+        val rangedCards = allOriginalCards.subList(safeFrom - 1, safeTo) // 1-indexed to 0-indexed
+
+        queue = StudyQueue(rangedCards, mode, shuffled = false)
+        _uiState.update {
+            it.copy(
+                showRangeDialog = false,
+                totalCount = rangedCards.size,
+                rangeFrom = safeFrom,
+                rangeTo = safeTo,
+                isRangeApplied = true,
+                reviewedCount = 0,
+                sessionResults = emptyList(),
+                isComplete = false,
+                isShuffled = false,
+            )
+        }
+        if (mode == StudyMode.MATCH) {
+            setupMatchMode(rangedCards)
+        } else {
+            loadNextCard()
+        }
+    }
+
+    fun onClearRange() {
+        if (allOriginalCards.isEmpty()) return
+        queue = StudyQueue(allOriginalCards, mode, shuffled = mode != StudyMode.LEARN)
+        _uiState.update {
+            it.copy(
+                showRangeDialog = false,
+                totalCount = allOriginalCards.size,
+                rangeFrom = null,
+                rangeTo = null,
+                isRangeApplied = false,
+                reviewedCount = 0,
+                sessionResults = emptyList(),
+                isComplete = false,
+                isShuffled = false,
+            )
+        }
+        if (mode == StudyMode.MATCH) {
+            setupMatchMode(allOriginalCards)
+        } else {
+            loadNextCard()
+        }
+    }
 }
