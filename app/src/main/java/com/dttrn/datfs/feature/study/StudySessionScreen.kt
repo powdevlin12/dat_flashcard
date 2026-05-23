@@ -72,7 +72,9 @@ fun StudySessionScreen(
                 currentIndex = uiState.reviewedCount,
                 total = uiState.totalCount,
                 progress = uiState.progress,
+                isShuffled = uiState.isShuffled,
                 onBack = onBack,
+                onShuffle = viewModel::onShuffleCards,
             )
         },
     ) { paddingValues ->
@@ -135,7 +137,9 @@ private fun StudySessionTopBar(
     currentIndex: Int,
     total: Int,
     progress: Float,
+    isShuffled: Boolean,
     onBack: () -> Unit,
+    onShuffle: () -> Unit,
 ) {
     Column {
         TopAppBar(
@@ -152,6 +156,16 @@ private fun StudySessionTopBar(
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Dừng học")
+                }
+            },
+            actions = {
+                IconButton(onClick = onShuffle) {
+                    Icon(
+                        Icons.Default.Shuffle,
+                        contentDescription = "Trộn thẻ",
+                        tint = if (isShuffled) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)

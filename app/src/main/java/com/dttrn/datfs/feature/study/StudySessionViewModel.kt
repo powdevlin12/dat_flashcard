@@ -115,6 +115,12 @@ class StudySessionViewModel @Inject constructor(
         }
     }
 
+    fun onShuffleCards() {
+        queue?.shuffle()
+        _uiState.update { it.copy(isShuffled = true) }
+        loadNextCard()
+    }
+
     /**
      * Called from swipe gesture or rating buttons.
      * rating: SM2Algorithm.Ratings.*

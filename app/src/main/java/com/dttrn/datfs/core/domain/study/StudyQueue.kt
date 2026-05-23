@@ -67,6 +67,15 @@ class StudyQueue(
 
     fun getFailedCards(): List<Flashcard> = _failedCards.toList()
 
+    /**
+     * Trộn lại thứ tự các thẻ còn lại trong hàng đợi.
+     */
+    fun shuffle() {
+        val remaining = _queue.toList().shuffled()
+        _queue.clear()
+        _queue.addAll(remaining)
+    }
+
     companion object {
         /**
          * Factory — build queue theo mode và filter cards.
