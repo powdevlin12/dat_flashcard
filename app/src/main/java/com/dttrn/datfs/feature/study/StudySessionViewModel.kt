@@ -10,6 +10,7 @@ import com.dttrn.datfs.core.domain.study.SM2Algorithm
 import com.dttrn.datfs.core.domain.study.StudyQueue
 import com.dttrn.datfs.core.domain.usecase.study.GetStudyQueueUseCase
 import com.dttrn.datfs.core.domain.usecase.study.SubmitReviewUseCase
+import com.dttrn.datfs.core.tts.TtsManager
 import com.dttrn.datfs.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -24,6 +25,7 @@ class StudySessionViewModel @Inject constructor(
     private val deckRepository: DeckRepository,
     private val getStudyQueueUseCase: GetStudyQueueUseCase,
     private val submitReviewUseCase: SubmitReviewUseCase,
+    val ttsManager: TtsManager,
 ) : ViewModel() {
 
     companion object {
@@ -324,6 +326,22 @@ class StudySessionViewModel @Inject constructor(
     }
 
     fun onErrorDismissed() = _uiState.update { it.copy(error = null) }
+
+    // ===== TEXT TO SPEECH =====
+
+    /**
+     * Phát âm từ tiếng Anh hiện tại.
+     * Ưu tiên đọc frontText (từ gốc tiếng Anh) vì TTS đọc IPA không chuẩn.
+     */
+    fun onSpeakWord() {
+        val card = _uiState.value.currentCard ?: return
+        ttsManager.speak(card.frontText)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        ttsManager.stop()
+    }
 
     // ===== RANGE SELECTION =====
 

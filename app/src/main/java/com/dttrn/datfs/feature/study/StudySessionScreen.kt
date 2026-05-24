@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,9 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,7 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dttrn.datfs.core.data.local.entity.StudyMode
 import com.dttrn.datfs.core.domain.study.SM2Algorithm
-import androidx.compose.ui.text.input.KeyboardType
+import com.dttrn.datfs.core.tts.TtsManager
 
 @Composable
 fun StudySessionScreen(
@@ -101,6 +104,8 @@ fun StudySessionScreen(
                     onRateEasy = { viewModel.onRateCard(SM2Algorithm.Ratings.EASY) },
                     showRatingButtons = true,
                     onToggleFrontFirst = viewModel::onToggleFrontFirst,
+                    onSpeak = viewModel::onSpeakWord,
+                    ttsManager = viewModel.ttsManager,
                 )
                 StudyMode.LEARN -> SwipeLearnContent(
                     uiState = uiState,
@@ -113,6 +118,8 @@ fun StudySessionScreen(
                     onRateEasy = { viewModel.onRateCard(SM2Algorithm.Ratings.EASY) },
                     showRatingButtons = false,
                     onToggleFrontFirst = viewModel::onToggleFrontFirst,
+                    onSpeak = viewModel::onSpeakWord,
+                    ttsManager = viewModel.ttsManager,
                 )
                 StudyMode.QUIZ -> QuizContent(
                     uiState = uiState,
@@ -242,8 +249,11 @@ private fun SwipeLearnContent(
     onRateEasy: () -> Unit,
     showRatingButtons: Boolean,
     onToggleFrontFirst: () -> Unit,
+    onSpeak: () -> Unit,
+    ttsManager: TtsManager,
 ) {
     val card = uiState.currentCard ?: return
+    val ttsStatus by ttsManager.status.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -269,6 +279,14 @@ private fun SwipeLearnContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        // TTS Speak Button
+        TtsSpeakButton(
+            ttsStatus = ttsStatus,
+            onSpeak = onSpeak,
         )
 
         Spacer(Modifier.height(16.dp))
@@ -724,6 +742,87 @@ private fun MatchItemCard(
                 modifier = Modifier.padding(8.dp),
                 maxLines = 3,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+// ===== TTS SPEAK BUTTON =====
+
+@Composable
+private fun TtsSpeakButton(
+    ttsStatus: TtsManager.TtsStatus,
+    onSpeak: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isSpeaking = ttsStatus == TtsManager.TtsStatus.SPEAKING
+    val isError = ttsStatus == TtsManager.TtsStatus.ERROR
+    val isReady = ttsStatus == TtsManager.TtsStatus.READY
+
+    // Pulse animation khi đang phát
+    val infiniteTransition = rememberInfiniteTransition(label = "tts_pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "tts_scale",
+    )
+
+    val buttonScale by animateFloatAsState(
+        targetValue = if (isSpeaking) scale else 1f,
+        label = "button_scale",
+    )
+
+    val containerColor = when {
+        isError -> MaterialTheme.colorScheme.errorContainer
+        isSpeaking -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
+    val contentColor = when {
+        isError -> MaterialTheme.colorScheme.onErrorContainer
+        isSpeaking -> MaterialTheme.colorScheme.onPrimary
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
+    }
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FilledIconButton(
+            onClick = { if (isReady || isSpeaking) onSpeak() },
+            enabled = !isError,
+            modifier = Modifier
+                .size(52.dp)
+                .graphicsLayer { scaleX = buttonScale; scaleY = buttonScale },
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = containerColor,
+                contentColor = contentColor,
+            ),
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                contentDescription = if (isSpeaking) "Đang phát âm..." else "Phát âm từ này",
+                modifier = Modifier.size(26.dp),
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        AnimatedContent(
+            targetState = when {
+                isError -> "TTS không khả dụng"
+                isSpeaking -> "Đang phát âm..."
+                else -> "Nhấn để nghe phát âm"
+            },
+            label = "tts_label",
+        ) { label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (isError) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
