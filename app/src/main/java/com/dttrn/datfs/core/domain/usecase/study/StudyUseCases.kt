@@ -12,6 +12,9 @@ import javax.inject.Inject
 
 /**
  * Lấy danh sách thẻ cần học cho một session.
+ * - LEARN / SWIPE: trả về toàn bộ thẻ (không filter isKnown, không giới hạn số lượng)
+ *   để người dùng có thể chọn vị trí học bất kỳ trên bộ thẻ.
+ * - SPACED_REPETITION: vẫn giữ logic due-only để ưu tiên thẻ hết hạn.
  */
 class GetStudyQueueUseCase @Inject constructor(
     private val flashcardRepository: FlashcardRepository,
@@ -19,9 +22,9 @@ class GetStudyQueueUseCase @Inject constructor(
     suspend operator fun invoke(
         deckId: String,
         mode: StudyMode,
-        dueOnly: Boolean = mode == StudyMode.SPACED_REPETITION,
-        limit: Int = 50,
-        shuffled: Boolean = mode != StudyMode.LEARN,
+        dueOnly: Boolean = false,          // false = lấy toàn bộ thẻ theo vị trí
+        limit: Int = Int.MAX_VALUE,        // không giới hạn
+        shuffled: Boolean = mode != StudyMode.LEARN && mode != StudyMode.SPACED_REPETITION,
     ): Result<StudyQueue> = runCatching {
         val cards = flashcardRepository.getCardsByDeck(deckId).first()
         if (cards.isEmpty()) {

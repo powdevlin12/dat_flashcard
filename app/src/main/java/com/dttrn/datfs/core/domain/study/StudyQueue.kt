@@ -88,11 +88,30 @@ class StudyQueue(
             limit: Int = Int.MAX_VALUE,
         ): StudyQueue {
             val now = System.currentTimeMillis()
-            val filtered = when {
-                dueOnly -> cards.filter { !it.isKnown && (it.isNew || it.isDueBy(now)) }
-                else -> cards.filter { !it.isKnown }
+            val filtered = when (mode) {
+                // LEARN và SPACED_REPETITION: lấy TẤT CẢ thẻ (không filter isKnown)
+                // để người dùng có thể chọn vị trí học bất kỳ trên bộ thẻ đầy đủ
+                StudyMode.LEARN,
+                StudyMode.SPACED_REPETITION -> {
+                    if (dueOnly) {
+                        cards.filter { it.isNew || it.isDueBy(now) }
+                    } else {
+                        cards  // toàn bộ thẻ, không bỏ thẻ đã biết
+                    }
+                }
+                // QUIZ, WRITE, MATCH: vẫn bỏ thẻ đã thuộc để thực hành hiệu quả hơn
+                StudyMode.QUIZ,
+                StudyMode.WRITE,
+                StudyMode.MATCH -> {
+                    if (dueOnly) {
+                        cards.filter { !it.isKnown && (it.isNew || it.isDueBy(now)) }
+                    } else {
+                        cards.filter { !it.isKnown }
+                    }
+                }
             }.take(limit)
             return StudyQueue(filtered, mode, shuffled)
         }
+
     }
 }
