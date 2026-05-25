@@ -100,7 +100,7 @@ class StudySessionViewModel @Inject constructor(
         _uiState.update { state ->
             state.copy(
                 currentCard = next,
-                currentIndex = q.reviewedCount,
+                currentIndex = q.masteredCount,
                 progress = q.progress,
                 isFlipped = false, // always start unflipped; SwipeableCard handles content order via showFrontFirst
                 isAnswerRevealed = false,
@@ -146,15 +146,19 @@ class StudySessionViewModel @Inject constructor(
                 is com.dttrn.datfs.core.domain.common.Result.Success -> r.data
                 else -> SM2Algorithm.calculate(rating, card.easeFactor, card.intervalDays, card.repetitionCount)
             }
-            // Requeue if failed in SM-2 mode
-            if (rating < 3 && mode == StudyMode.SPACED_REPETITION) {
+            // Requeue if failed — applies to ALL modes (học tới khi nhớ)
+            if (rating < 3) {
                 queue?.markFailed(card, requeue = true)
             }
             val result = CardResult(card, rating, sm2Result)
             _uiState.update {
+                // Deduplicate: keep latest result per card (in case of re-review)
+                val newResults = it.sessionResults.toMutableList()
+                val idx = newResults.indexOfFirst { r -> r.card.id == card.id }
+                if (idx >= 0) newResults[idx] = result else newResults.add(result)
                 it.copy(
-                    sessionResults = it.sessionResults + result,
-                    reviewedCount = (queue?.reviewedCount ?: 0),
+                    sessionResults = newResults,
+                    reviewedCount = (queue?.masteredCount ?: 0),
                 )
             }
             loadNextCard()

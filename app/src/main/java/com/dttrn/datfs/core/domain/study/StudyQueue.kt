@@ -21,7 +21,10 @@ class StudyQueue(
     val remainingCount: Int get() = _queue.size
     val failedCount: Int get() = _failedCards.size
     val isComplete: Boolean get() = _queue.isEmpty()
-    val progress: Float get() = if (totalCount == 0) 1f else reviewedCount.toFloat() / totalCount
+    /** Cards answered correctly and no longer in queue */
+    val masteredCount: Int get() = totalCount - remainingCount
+    /** Progress based on mastered (permanently done) cards / total */
+    val progress: Float get() = if (totalCount == 0) 1f else masteredCount.toFloat() / totalCount
 
     init {
         val sorted = when (mode) {

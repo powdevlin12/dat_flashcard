@@ -180,8 +180,12 @@ private fun StudySessionTopBar(
                     val subtitle = buildString {
                         append(modeLabel(mode))
                         append(" • $currentIndex/$total thẻ")
+                        val remaining = total - currentIndex
+                        if (remaining > 0 && currentIndex > 0) {
+                            append(" (còn $remaining thẻ cần ôn)")
+                        }
                         if (isRangeApplied && rangeFrom != null && rangeTo != null) {
-                            append(" (vị trí $rangeFrom–$rangeTo/$originalTotal)")
+                            append(" • vị trí $rangeFrom–$rangeTo/$originalTotal")
                         }
                     }
                     Text(
