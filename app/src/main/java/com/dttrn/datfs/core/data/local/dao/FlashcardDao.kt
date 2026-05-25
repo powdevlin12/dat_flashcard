@@ -66,7 +66,7 @@ interface FlashcardDao {
     // ===== Search =====
 
     @Query("""
-        SELECT * FROM flashcard_table 
+        SELECT * FROM flashcard_table
         WHERE (
             frontText LIKE '%' || :query || '%' OR
             backText LIKE '%' || :query || '%' OR
@@ -77,6 +77,19 @@ interface FlashcardDao {
         ORDER BY updatedAt DESC
     """)
     fun searchCards(query: String): Flow<List<FlashcardEntity>>
+
+    @Query("""
+        SELECT * FROM flashcard_table
+        WHERE (
+            frontText LIKE '%' || :query || '%' OR
+            backText LIKE '%' || :query || '%' OR
+            note LIKE '%' || :query || '%' OR
+            exampleSentence LIKE '%' || :query || '%' OR
+            pronunciation LIKE '%' || :query || '%'
+        )
+        ORDER BY updatedAt DESC
+    """)
+    suspend fun searchCardsOnce(query: String): List<FlashcardEntity>
 
     // ===== Mutations =====
 

@@ -11,6 +11,7 @@ interface FlashcardRepository {
 
     fun getCardsByDeck(deckId: String): Flow<List<Flashcard>>
     fun searchCards(query: String): Flow<List<Flashcard>>
+    suspend fun searchCardsOnce(query: String): List<Flashcard>
     suspend fun getCardById(cardId: String): Flashcard?
     suspend fun getCardsForReview(todayEndMs: Long): List<Flashcard>
     suspend fun getCardsForReviewByFlow(todayEndMs: Long): List<Flashcard>  // Phase 3

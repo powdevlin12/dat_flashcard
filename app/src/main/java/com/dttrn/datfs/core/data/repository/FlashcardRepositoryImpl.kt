@@ -23,6 +23,9 @@ class FlashcardRepositoryImpl @Inject constructor(
     override fun searchCards(query: String): Flow<List<Flashcard>> =
         flashcardDao.searchCards(query).map { list -> list.map { it.toDomain() } }
 
+    override suspend fun searchCardsOnce(query: String): List<Flashcard> =
+        flashcardDao.searchCardsOnce(query).map { it.toDomain() }
+
     override suspend fun getCardById(cardId: String): Flashcard? =
         flashcardDao.getCardById(cardId)?.toDomain()
 

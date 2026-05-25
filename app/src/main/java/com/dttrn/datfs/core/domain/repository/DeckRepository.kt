@@ -15,6 +15,7 @@ interface DeckRepository {
     fun getFavoriteDecks(): Flow<List<Deck>>
     fun getDeckById(deckId: String): Flow<Deck?>
     fun searchDecks(query: String): Flow<List<Deck>>
+    suspend fun searchDecksOnce(query: String): List<Deck>
     fun getDecksFiltered(category: String?, sortBy: DeckSortOrder): Flow<List<Deck>>
     fun getCategories(): Flow<List<String>>
 

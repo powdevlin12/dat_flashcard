@@ -35,6 +35,9 @@ class DeckRepositoryImpl @Inject constructor(
     override fun searchDecks(query: String): Flow<List<Deck>> =
         deckDao.searchDecks(query).map { list -> list.map { it.toDomain() } }
 
+    override suspend fun searchDecksOnce(query: String): List<Deck> =
+        deckDao.searchDecksOnce(query).map { it.toDomain() }
+
     override fun getDecksFiltered(category: String?, sortBy: DeckSortOrder): Flow<List<Deck>> =
         deckDao.getDecksFiltered(category, sortBy.name).map { list -> list.map { it.toDomain() } }
 

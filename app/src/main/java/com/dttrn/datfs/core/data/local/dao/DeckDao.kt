@@ -32,14 +32,24 @@ interface DeckDao {
     suspend fun getActiveDecksOnce(): List<DeckEntity>
 
     @Query("""
-        SELECT * FROM deck_table 
+        SELECT * FROM deck_table
         WHERE isArchived = 0 AND (
-            title LIKE '%' || :query || '%' OR 
+            title LIKE '%' || :query || '%' OR
             description LIKE '%' || :query || '%'
         )
         ORDER BY updatedAt DESC
     """)
     fun searchDecks(query: String): Flow<List<DeckEntity>>
+
+    @Query("""
+        SELECT * FROM deck_table
+        WHERE isArchived = 0 AND (
+            title LIKE '%' || :query || '%' OR
+            description LIKE '%' || :query || '%'
+        )
+        ORDER BY updatedAt DESC
+    """)
+    suspend fun searchDecksOnce(query: String): List<DeckEntity>
 
     @Query("""
         SELECT * FROM deck_table 
