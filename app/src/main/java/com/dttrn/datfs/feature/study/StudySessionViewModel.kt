@@ -210,9 +210,14 @@ class StudySessionViewModel @Inject constructor(
 
     fun onSubmitWriteAnswer() {
         if (_uiState.value.isAnswerRevealed) return
-        val card = _uiState.value.currentCard ?: return
-        val answer = _uiState.value.writeAnswer.trim()
-        val correct = answer.equals(card.backText.trim(), ignoreCase = true)
+        val state = _uiState.value
+        val card = state.currentCard ?: return
+        val answer = state.writeAnswer.trim()
+        val correct = if (state.showFrontFirst) {
+            answer.equals(card.backText.trim(), ignoreCase = true)
+        } else {
+            answer.equals(card.frontText.trim(), ignoreCase = true)
+        }
         _uiState.update {
             it.copy(
                 isAnswerRevealed = true,

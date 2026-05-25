@@ -130,6 +130,10 @@ fun StudySessionScreen(
                     onAnswerChange = viewModel::onWriteAnswerChange,
                     onSubmit = viewModel::onSubmitWriteAnswer,
                     onAdvance = viewModel::onWriteAdvance,
+                    showFrontFirst = uiState.showFrontFirst,
+                    onToggleFrontFirst = viewModel::onToggleFrontFirst,
+                    onSpeak = viewModel::onSpeakWord,
+                    ttsManager = viewModel.ttsManager,
                 )
                 StudyMode.MATCH -> MatchContent(
                     uiState = uiState,
@@ -533,16 +537,31 @@ private fun WriteContent(
     onAnswerChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onAdvance: () -> Unit,
+    showFrontFirst: Boolean,
+    onToggleFrontFirst: () -> Unit,
+    onSpeak: () -> Unit,
+    ttsManager: TtsManager,
 ) {
     val card = uiState.currentCard ?: return
     val focusManager = LocalFocusManager.current
+    val ttsStatus by ttsManager.status.collectAsStateWithLifecycle()
+
+    val questionText = if (showFrontFirst) card.frontText else card.backText
+    val correctAnswerText = if (showFrontFirst) card.backText else card.frontText
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
     ) {
-        // Question
+        // Front/Back toggle
+        FrontBackToggle(
+            showFrontFirst = showFrontFirst,
+            onToggle = onToggleFrontFirst,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+
+        // Question card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -550,7 +569,7 @@ private fun WriteContent(
             elevation = CardDefaults.cardElevation(2.dp),
         ) {
             Text(
-                card.frontText,
+                questionText,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
@@ -558,7 +577,15 @@ private fun WriteContent(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(12.dp))
+
+        // TTS Speak Button
+        TtsSpeakButton(
+            ttsStatus = ttsStatus,
+            onSpeak = onSpeak,
+        )
+
+        Spacer(Modifier.height(12.dp))
 
         // Answer input
         OutlinedTextField(
@@ -609,7 +636,7 @@ private fun WriteContent(
                         if (uiState.isWriteCorrect == false) {
                             Spacer(Modifier.height(8.dp))
                             Text("Đáp án đúng: ", style = MaterialTheme.typography.labelMedium)
-                            Text(card.backText, fontWeight = FontWeight.Bold)
+                            Text(correctAnswerText, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
