@@ -17,11 +17,13 @@ import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -38,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dttrn.datfs.core.data.local.entity.StudyMode
 import com.dttrn.datfs.core.domain.study.SM2Algorithm
 import com.dttrn.datfs.core.tts.TtsManager
+import kotlinx.coroutines.launch
 
 @Composable
 fun StudySessionScreen(
@@ -47,6 +50,9 @@ fun StudySessionScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
+    val writeInputFocusRequester = remember { FocusRequester() }
+    var isWriteInputFocused by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     // Navigate to result when done
     LaunchedEffect(uiState.isComplete) {
@@ -109,6 +115,7 @@ fun StudySessionScreen(
                 mode = uiState.mode,
                 isFlipped = uiState.isFlipped,
                 isAnswerRevealed = uiState.isAnswerRevealed,
+                isWriteInputFocused = isWriteInputFocused,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             )
         },
@@ -119,9 +126,36 @@ fun StudySessionScreen(
                 .padding(paddingValues)
                 .focusRequester(focusRequester)
                 .focusable()
-                .onKeyEvent { event ->
-                    if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
-                    if (uiState.showRangeDialog) return@onKeyEvent false
+                .onPreviewKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    if (uiState.showRangeDialog) return@onPreviewKeyEvent false
+
+                    // Tab toggles between input focus and shortcut mode (Write mode only)
+                    if (event.key == Key.Tab && viewModel.mode == StudyMode.WRITE && !uiState.isAnswerRevealed) {
+                        coroutineScope.launch {
+                            if (isWriteInputFocused) {
+                                // Switch to shortcut mode
+                                isWriteInputFocused = false
+                                focusRequester.requestFocus()
+                            } else {
+                                // Switch to typing mode
+                                writeInputFocusRequester.requestFocus()
+                            }
+                        }
+                        return@onPreviewKeyEvent true
+                    }
+                    // Escape in Write mode when input focused → unfocus input first
+                    if (event.key == Key.Escape && viewModel.mode == StudyMode.WRITE && isWriteInputFocused) {
+                        coroutineScope.launch {
+                            isWriteInputFocused = false
+                            focusRequester.requestFocus()
+                        }
+                        return@onPreviewKeyEvent true
+                    }
+
+                    // If Write input is focused, don't intercept other keys (let TextField handle them)
+                    if (isWriteInputFocused) return@onPreviewKeyEvent false
+
                     handleKeyEvent(event, uiState, viewModel, onBack)
                 },
         ) {
@@ -167,6 +201,10 @@ fun StudySessionScreen(
                     onToggleFrontFirst = viewModel::onToggleFrontFirst,
                     onSpeak = viewModel::onSpeakWord,
                     ttsManager = viewModel.ttsManager,
+                    parentFocusRequester = focusRequester,
+                    inputFocusRequester = writeInputFocusRequester,
+                    isInputFocused = isWriteInputFocused,
+                    onInputFocusChanged = { isWriteInputFocused = it },
                 )
                 StudyMode.MATCH -> MatchContent(
                     uiState = uiState,
@@ -574,6 +612,10 @@ private fun WriteContent(
     onToggleFrontFirst: () -> Unit,
     onSpeak: () -> Unit,
     ttsManager: TtsManager,
+    parentFocusRequester: FocusRequester,
+    inputFocusRequester: FocusRequester,
+    isInputFocused: Boolean,
+    onInputFocusChanged: (Boolean) -> Unit,
 ) {
     val card = uiState.currentCard ?: return
     val focusManager = LocalFocusManager.current
@@ -627,25 +669,83 @@ private fun WriteContent(
 
         Spacer(Modifier.height(12.dp))
 
-        // Answer input
-        OutlinedTextField(
-            value = uiState.writeAnswer,
-            onValueChange = { if (!uiState.isAnswerRevealed) onAnswerChange(it) },
-            label = { Text("Câu trả lời của bạn") },
+        // Answer input + focus toggle
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isAnswerRevealed,
-            isError = uiState.isWriteCorrect == false,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus(); onSubmit() }),
-            minLines = 3,
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+            verticalAlignment = Alignment.Top,
+        ) {
+            OutlinedTextField(
+                value = uiState.writeAnswer,
+                onValueChange = { if (!uiState.isAnswerRevealed) onAnswerChange(it) },
+                label = { Text("Câu trả lời của bạn") },
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(inputFocusRequester)
+                    .onFocusChanged { onInputFocusChanged(it.isFocused) },
+                enabled = !uiState.isAnswerRevealed,
+                isError = uiState.isWriteCorrect == false,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    focusManager.clearFocus()
+                    onSubmit()
+                    // Return focus to parent for shortcuts
+                    kotlinx.coroutines.MainScope().launch {
+                        kotlinx.coroutines.delay(100)
+                        parentFocusRequester.requestFocus()
+                    }
+                }),
+                minLines = 3,
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                )
             )
-        )
+
+            Spacer(Modifier.width(8.dp))
+
+            // Toggle focus: input ↔ shortcuts
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                FilledTonalIconButton(
+                    onClick = {
+                        if (isInputFocused) {
+                            // Unfocus input → return to shortcut mode
+                            focusManager.clearFocus()
+                            kotlinx.coroutines.MainScope().launch {
+                                kotlinx.coroutines.delay(100)
+                                parentFocusRequester.requestFocus()
+                            }
+                        } else {
+                            // Focus input → typing mode
+                            inputFocusRequester.requestFocus()
+                        }
+                    },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = if (isInputFocused)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Icon(
+                        imageVector = if (isInputFocused) Icons.Default.Keyboard
+                                      else Icons.Default.Edit,
+                        contentDescription = if (isInputFocused) "Chế độ phím tắt (Esc)"
+                                             else "Chế độ gõ chữ",
+                    )
+                }
+                Text(
+                    text = if (isInputFocused) "Phím tắt" else "Gõ chữ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 9.sp,
+                )
+            }
+        }
 
         // Feedback
         AnimatedVisibility(visible = uiState.isAnswerRevealed) {
@@ -687,7 +787,14 @@ private fun WriteContent(
 
         if (!uiState.isAnswerRevealed) {
             Button(
-                onClick = { focusManager.clearFocus(); onSubmit() },
+                onClick = {
+                    focusManager.clearFocus()
+                    onSubmit()
+                    kotlinx.coroutines.MainScope().launch {
+                        kotlinx.coroutines.delay(100)
+                        parentFocusRequester.requestFocus()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 enabled = uiState.writeAnswer.isNotBlank(),
@@ -1171,9 +1278,10 @@ private fun KeyboardShortcutsBar(
     mode: StudyMode,
     isFlipped: Boolean,
     isAnswerRevealed: Boolean,
+    isWriteInputFocused: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val hints = remember(mode, isFlipped, isAnswerRevealed) {
+    val hints = remember(mode, isFlipped, isAnswerRevealed, isWriteInputFocused) {
         buildList {
             when (mode) {
                 StudyMode.SPACED_REPETITION -> {
@@ -1193,16 +1301,23 @@ private fun KeyboardShortcutsBar(
                 }
                 StudyMode.QUIZ -> add("A/B/C/D" to "Chọn đáp án")
                 StudyMode.WRITE -> {
-                    if (isAnswerRevealed) add("Enter" to "Tiếp")
-                    else add("Enter" to "Kiểm tra")
+                    add("Tab" to if (isWriteInputFocused) "⌨ Phím tắt" else "✏ Gõ chữ")
+                    if (isWriteInputFocused) {
+                        add("Esc" to "Thoát gõ")
+                    } else {
+                        if (isAnswerRevealed) add("Enter" to "Tiếp")
+                        else add("Enter" to "Kiểm tra")
+                    }
                 }
-                StudyMode.MATCH -> {} // no card-specific shortcuts
+                StudyMode.MATCH -> {}
             }
-            add("P" to "Phát âm")
-            add("T" to "Đổi mặt")
-            add("S" to "Trộn")
-            add("F" to "Lọc")
-            add("Esc" to "Thoát")
+            if (!isWriteInputFocused) {
+                add("P" to "Phát âm")
+                add("T" to "Đổi mặt")
+                add("S" to "Trộn")
+                add("F" to "Lọc")
+                add("Esc" to "Thoát")
+            }
         }
     }
 
