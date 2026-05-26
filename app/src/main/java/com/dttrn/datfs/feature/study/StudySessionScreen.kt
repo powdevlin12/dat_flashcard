@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,9 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -42,10 +46,24 @@ fun StudySessionScreen(
     viewModel: StudySessionViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val focusRequester = remember { FocusRequester() }
 
     // Navigate to result when done
     LaunchedEffect(uiState.isComplete) {
         if (uiState.isComplete) onSessionComplete(viewModel.deckId)
+    }
+
+    // Auto-focus for keyboard capture (delay to ensure layout is ready)
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(100)
+        focusRequester.requestFocus()
+    }
+    // Re-focus after dialog closes
+    LaunchedEffect(uiState.showRangeDialog) {
+        if (!uiState.showRangeDialog) {
+            kotlinx.coroutines.delay(100)
+            focusRequester.requestFocus()
+        }
     }
 
     if (uiState.isLoading) {
@@ -86,11 +104,26 @@ fun StudySessionScreen(
                 onRangeFilter = viewModel::onShowRangeDialog,
             )
         },
+        bottomBar = {
+            KeyboardShortcutsBar(
+                mode = uiState.mode,
+                isFlipped = uiState.isFlipped,
+                isAnswerRevealed = uiState.isAnswerRevealed,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        },
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                .focusRequester(focusRequester)
+                .focusable()
+                .onKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                    if (uiState.showRangeDialog) return@onKeyEvent false
+                    handleKeyEvent(event, uiState, viewModel, onBack)
+                },
         ) {
             when (viewModel.mode) {
                 StudyMode.SPACED_REPETITION -> SwipeLearnContent(
@@ -1011,4 +1044,222 @@ private fun RangeSelectionDialog(
             }
         },
     )
+}
+
+// ===== KEYBOARD SHORTCUT HANDLER =====
+
+/**
+ * Xử lý phím tắt bàn phím ngoài cho máy tính bảng.
+ *
+ * | Phím       | Chức năng                          | Chế độ              |
+ * |------------|------------------------------------|---------------------|
+ * | Space      | Lật thẻ                            | Swipe/Learn         |
+ * | 1          | Quên (Again)                       | SM-2 (đã lật)       |
+ * | 2          | Khó (Hard)                         | SM-2 (đã lật)       |
+ * | 3          | Tốt (Good)                         | SM-2 (đã lật)       |
+ * | 4          | Dễ (Easy)                          | SM-2 (đã lật)       |
+ * | ←          | Chưa biết / Quên                   | Learn/Swipe         |
+ * | →          | Biết rồi / Nhớ                     | Learn/Swipe         |
+ * | A/B/C/D    | Chọn đáp án trắc nghiệm            | Quiz                |
+ * | Enter      | Kiểm tra / Tiếp theo               | Write               |
+ * | T          | Đổi mặt trước ↔ mặt sau            | Swipe/Learn/Write   |
+ * | S          | Trộn thẻ                           | Tất cả              |
+ * | P          | Phát âm (TTS)                      | Swipe/Learn/Write   |
+ * | F          | Mở bộ lọc phạm vi                  | Tất cả              |
+ * | Escape     | Quay lại                           | Tất cả              |
+ */
+private fun handleKeyEvent(
+    event: KeyEvent,
+    uiState: StudySessionUiState,
+    viewModel: StudySessionViewModel,
+    onBack: () -> Unit,
+): Boolean {
+    val mode = viewModel.mode
+    val isSwipeLearn = mode == StudyMode.SPACED_REPETITION || mode == StudyMode.LEARN
+
+    return when (event.key) {
+        // === GLOBAL ===
+        Key.Escape -> { onBack(); true }
+        Key.S -> { viewModel.onShuffleCards(); true }
+        Key.F -> { viewModel.onShowRangeDialog(); true }
+        Key.P -> {
+            if (isSwipeLearn || mode == StudyMode.WRITE) { viewModel.onSpeakWord(); true }
+            else false
+        }
+        Key.T -> {
+            if (isSwipeLearn || mode == StudyMode.WRITE) { viewModel.onToggleFrontFirst(); true }
+            else false
+        }
+
+        // === SWIPE / LEARN: Space to flip ===
+        Key.Spacebar -> {
+            if (isSwipeLearn) { viewModel.onFlipCard(); true }
+            else false
+        }
+
+        // === SM-2 ratings: 1-4 (only when flipped) ===
+        Key.One -> {
+            if (mode == StudyMode.SPACED_REPETITION && uiState.isFlipped) {
+                viewModel.onRateCard(SM2Algorithm.Ratings.AGAIN); true
+            } else false
+        }
+        Key.Two -> {
+            if (mode == StudyMode.SPACED_REPETITION && uiState.isFlipped) {
+                viewModel.onRateCard(SM2Algorithm.Ratings.HARD); true
+            } else false
+        }
+        Key.Three -> {
+            if (mode == StudyMode.SPACED_REPETITION && uiState.isFlipped) {
+                viewModel.onRateCard(SM2Algorithm.Ratings.GOOD); true
+            } else false
+        }
+        Key.Four -> {
+            if (mode == StudyMode.SPACED_REPETITION && uiState.isFlipped) {
+                viewModel.onRateCard(SM2Algorithm.Ratings.EASY); true
+            } else false
+        }
+
+        // === LEARN: arrow keys ===
+        Key.DirectionLeft -> {
+            if (isSwipeLearn) { viewModel.onRateCard(SM2Algorithm.Ratings.AGAIN); true }
+            else false
+        }
+        Key.DirectionRight -> {
+            if (isSwipeLearn) { viewModel.onRateCard(SM2Algorithm.Ratings.GOOD); true }
+            else false
+        }
+
+        // === QUIZ: A/B/C/D ===
+        Key.A -> {
+            if (mode == StudyMode.QUIZ && uiState.quizOptions.isNotEmpty() && !uiState.isAnswerRevealed) {
+                viewModel.onSelectQuizAnswer(uiState.quizOptions[0]); true
+            } else false
+        }
+        Key.B -> {
+            if (mode == StudyMode.QUIZ && uiState.quizOptions.size > 1 && !uiState.isAnswerRevealed) {
+                viewModel.onSelectQuizAnswer(uiState.quizOptions[1]); true
+            } else false
+        }
+        Key.C -> {
+            if (mode == StudyMode.QUIZ && uiState.quizOptions.size > 2 && !uiState.isAnswerRevealed) {
+                viewModel.onSelectQuizAnswer(uiState.quizOptions[2]); true
+            } else false
+        }
+        Key.D -> {
+            if (mode == StudyMode.QUIZ && uiState.quizOptions.size > 3 && !uiState.isAnswerRevealed) {
+                viewModel.onSelectQuizAnswer(uiState.quizOptions[3]); true
+            } else false
+        }
+
+        // === WRITE: Enter to submit/advance ===
+        Key.Enter -> {
+            if (mode == StudyMode.WRITE) {
+                if (uiState.isAnswerRevealed) viewModel.onWriteAdvance()
+                else if (uiState.writeAnswer.isNotBlank()) viewModel.onSubmitWriteAnswer()
+                true
+            } else false
+        }
+
+        else -> false
+    }
+}
+
+// ===== KEYBOARD SHORTCUTS HINT BAR =====
+
+@Composable
+private fun KeyboardShortcutsBar(
+    mode: StudyMode,
+    isFlipped: Boolean,
+    isAnswerRevealed: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val hints = remember(mode, isFlipped, isAnswerRevealed) {
+        buildList {
+            when (mode) {
+                StudyMode.SPACED_REPETITION -> {
+                    add("Space" to "Lật")
+                    if (isFlipped) {
+                        add("1" to "Quên")
+                        add("2" to "Khó")
+                        add("3" to "Tốt")
+                        add("4" to "Dễ")
+                    }
+                    add("←→" to "Quên/Nhớ")
+                }
+                StudyMode.LEARN -> {
+                    add("Space" to "Lật")
+                    add("←" to "Chưa biết")
+                    add("→" to "Biết rồi")
+                }
+                StudyMode.QUIZ -> add("A/B/C/D" to "Chọn đáp án")
+                StudyMode.WRITE -> {
+                    if (isAnswerRevealed) add("Enter" to "Tiếp")
+                    else add("Enter" to "Kiểm tra")
+                }
+                StudyMode.MATCH -> {} // no card-specific shortcuts
+            }
+            add("P" to "Phát âm")
+            add("T" to "Đổi mặt")
+            add("S" to "Trộn")
+            add("F" to "Lọc")
+            add("Esc" to "Thoát")
+        }
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 1.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Keyboard,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            hints.forEach { (key, label) ->
+                KeyHintChip(key = key, label = label)
+            }
+        }
+    }
+}
+
+@Composable
+private fun KeyHintChip(key: String, label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.12f),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+            ),
+        ) {
+            Text(
+                text = key,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                fontSize = 10.sp,
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 10.sp,
+        )
+    }
 }
