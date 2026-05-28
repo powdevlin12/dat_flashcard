@@ -53,4 +53,32 @@ sealed class Screen(val route: String) {
         fun createRoute(deckId: String) = "study_result/$deckId"
         const val ARG_DECK_ID = "deckId"
     }
+
+    // ===== Examination =====
+    data object ExamConfig : Screen("exam_config/{deckId}?previousConfig={previousConfig}") {
+        fun createRoute(deckId: String, previousConfig: String? = null) =
+            if (previousConfig != null) "exam_config/$deckId?previousConfig=$previousConfig"
+            else "exam_config/$deckId"
+        const val ARG_DECK_ID = "deckId"
+        const val ARG_PREVIOUS_CONFIG = "previousConfig"
+    }
+
+    data object ExamSession : Screen("exam_session/{deckId}/{questionCount}/{questionType}/{timeLimitMinutes}/{writeDirection}") {
+        fun createRoute(deckId: String, questionCount: Int, questionType: String, timeLimitMinutes: Int, writeDirection: String) =
+            "exam_session/$deckId/$questionCount/$questionType/$timeLimitMinutes/$writeDirection"
+        const val ARG_DECK_ID = "deckId"
+        const val ARG_QUESTION_COUNT = "questionCount"
+        const val ARG_QUESTION_TYPE = "questionType"
+        const val ARG_TIME_LIMIT_MINUTES = "timeLimitMinutes"
+        const val ARG_WRITE_DIRECTION = "writeDirection"
+    }
+
+    data object ExamResult : Screen("exam_result/{deckId}/{sessionId}?previousConfig={previousConfig}") {
+        fun createRoute(deckId: String, sessionId: String, previousConfig: String? = null) =
+            if (previousConfig != null) "exam_result/$deckId/$sessionId?previousConfig=$previousConfig"
+            else "exam_result/$deckId/$sessionId"
+        const val ARG_DECK_ID = "deckId"
+        const val ARG_SESSION_ID = "sessionId"
+        const val ARG_PREVIOUS_CONFIG = "previousConfig"
+    }
 }
