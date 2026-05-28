@@ -10,6 +10,7 @@ import com.dttrn.datfs.core.domain.repository.FlashcardRepository
 import com.dttrn.datfs.core.domain.repository.ReviewRepository
 import com.dttrn.datfs.core.domain.study.SM2Algorithm
 import com.dttrn.datfs.core.domain.study.StudyQueue
+import com.dttrn.datfs.core.tts.TtsManager
 import com.dttrn.datfs.navigation.Screen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -29,6 +30,7 @@ class ExamSessionViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val flashcardRepository: FlashcardRepository,
     private val reviewRepository: ReviewRepository,
+    val ttsManager: TtsManager,
 ) : ViewModel() {
 
     val deckId: String = checkNotNull(savedStateHandle[Screen.ExamSession.ARG_DECK_ID])
@@ -38,13 +40,18 @@ class ExamSessionViewModel @Inject constructor(
         checkNotNull(savedStateHandle[Screen.ExamSession.ARG_QUESTION_TYPE])
     val timeLimitMinutes: Int? =
         savedStateHandle.get<Int>(Screen.ExamSession.ARG_TIME_LIMIT_MINUTES)?.takeIf { it > 0 }
+    private val writeDirectionArg: String =
+        savedStateHandle.get<String>(Screen.ExamSession.ARG_WRITE_DIRECTION) ?: WriteDirection.BACK.name
 
     val questionType: QuestionType = runCatching {
         QuestionType.valueOf(questionTypeArg)
     }.getOrDefault(QuestionType.MULTIPLE_CHOICE)
 
+    val initialWriteDirection: WriteDirection = runCatching {
+        WriteDirection.valueOf(writeDirectionArg)
+    }.getOrDefault(WriteDirection.BACK)
+
     companion object {
-        /** Temporary holder for passing results to ExamResultScreen */
         internal var pendingResultState: ExamResultUiState? = null
     }
 
@@ -106,6 +113,7 @@ class ExamSessionViewModel @Inject constructor(
                     isLastQuestion = total <= 1,
                     timeLimitMinutes = timeLimitMinutes,
                     timeRemainingSeconds = (timeLimitMinutes ?: 0) * 60,
+                    writeDirection = initialWriteDirection,
                 )
             }
         }
@@ -145,20 +153,88 @@ class ExamSessionViewModel @Inject constructor(
     // ─── Navigation ──────────────────────────────────────────────────────
 
     fun onNextQuestion() {
-        _uiState.update { state ->
-            val newIndex = (state.currentIndex + 1).coerceAtMost(state.questions.size - 1)
-            state.copy(
+        val state = _uiState.value
+        val newIndex = (state.currentIndex + 1).coerceAtMost(state.questions.size - 1)
+        _uiState.update {
+            it.copy(
                 currentIndex = newIndex,
                 isLastQuestion = newIndex == state.questions.size - 1,
+                dictationPlayCount = 0,
             )
+        }
+        val nextQuestion = state.questions.getOrNull(newIndex)
+        if (nextQuestion?.questionType == QuestionType.DICTATION) {
+            speakCurrentWord()
         }
     }
 
     fun onPreviousQuestion() {
         _uiState.update { state ->
             val newIndex = (state.currentIndex - 1).coerceAtLeast(0)
-            state.copy(currentIndex = newIndex, isLastQuestion = false)
+            state.copy(currentIndex = newIndex, isLastQuestion = false, dictationPlayCount = 0)
         }
+    }
+
+    // ─── Write Direction ─────────────────────────────────────────────────
+
+    fun onToggleWriteDirection() {
+        _uiState.update { state ->
+            val newDirection = when (state.writeDirection) {
+                WriteDirection.BACK -> WriteDirection.FRONT
+                WriteDirection.FRONT -> WriteDirection.BACK
+            }
+            state.copy(writeDirection = newDirection)
+        }
+    }
+
+    // ─── TTS / Dictation ─────────────────────────────────────────────────
+
+    fun onSpeakWord() {
+        val state = _uiState.value
+        val question = state.questions.getOrNull(state.currentIndex) ?: return
+        val text = when (state.writeDirection) {
+            WriteDirection.BACK -> question.card.frontText
+            WriteDirection.FRONT -> question.card.backText
+        }
+        ttsManager.speak(text)
+    }
+
+    fun onReplayDictation() {
+        _uiState.update { state ->
+            val updated = state.questions.toMutableList()
+            val current = updated[state.currentIndex]
+            val newCount = current.dictationPlayCount + 1
+            updated[state.currentIndex] = current.copy(dictationPlayCount = newCount)
+            state.copy(questions = updated, dictationPlayCount = newCount)
+        }
+        onSpeakWord()
+    }
+
+    private fun speakCurrentWord() {
+        val state = _uiState.value
+        val question = state.questions.getOrNull(state.currentIndex) ?: return
+        if (question.questionType != QuestionType.DICTATION) return
+        val text = when (state.writeDirection) {
+            WriteDirection.BACK -> question.card.frontText
+            WriteDirection.FRONT -> question.card.backText
+        }
+        ttsManager.speak(text)
+        _uiState.update { state ->
+            val updated = state.questions.toMutableList()
+            val current = updated[state.currentIndex]
+            updated[state.currentIndex] = current.copy(dictationPlayCount = 1)
+            state.copy(questions = updated, dictationPlayCount = 1)
+        }
+    }
+
+    fun onStopTts() {
+        ttsManager.stop()
+    }
+
+    // ─── Input Focus ─────────────────────────────────────────────────────
+
+    fun onInputFocusChanged(focused: Boolean) {
+        _uiState.update { it.copy(isWriteInputFocused = focused) }
     }
 
     // ─── Submission ──────────────────────────────────────────────────────
@@ -170,16 +246,16 @@ class ExamSessionViewModel @Inject constructor(
                 QuestionType.MULTIPLE_CHOICE ->
                     question.userAnswer.equals(question.card.backText, ignoreCase = true)
                 QuestionType.WRITE ->
-                    isWriteAnswerCorrect(question.userAnswer, question.card.backText)
+                    isWriteAnswerCorrect(question.userAnswer, getExpectedAnswer(question.card, state.writeDirection))
+                QuestionType.DICTATION ->
+                    isWriteAnswerCorrect(question.userAnswer, getExpectedAnswer(question.card, state.writeDirection))
                 QuestionType.MIXED -> {
                     if (question.options.isNotEmpty()) {
                         question.userAnswer.equals(question.card.backText, ignoreCase = true)
                     } else {
-                        isWriteAnswerCorrect(question.userAnswer, question.card.backText)
+                        isWriteAnswerCorrect(question.userAnswer, getExpectedAnswer(question.card, state.writeDirection))
                     }
                 }
-                QuestionType.DICTATION ->
-                    isWriteAnswerCorrect(question.userAnswer, question.card.backText)
             }
             question.copy(isCorrect = isCorrect)
         }
@@ -187,12 +263,11 @@ class ExamSessionViewModel @Inject constructor(
         val correctCount = questions.count { it.isCorrect == true }
         val incorrectCount = questions.count { it.isCorrect == false }
         val passed = questions.isNotEmpty() && correctCount.toFloat() / questions.size >= 0.7f
-        val timeTaken = ((timeLimitMinutes ?: 0) * 60 - state.timeRemainingSeconds)
+        val timeTaken = ((timeLimitMinutes ?: 0) * 60 - state.timeRemainingSeconds).coerceAtLeast(0)
 
         val sessionId = UUID.randomUUID().toString()
 
         viewModelScope.launch {
-            // Update SM-2 for each card
             questions.forEach { question ->
                 val result = flashcardRepository.getCardById(question.card.id)
                 if (result != null) {
@@ -217,8 +292,6 @@ class ExamSessionViewModel @Inject constructor(
                 }
             }
 
-            // Save exam session with encoded metadata in studyMode string
-            val studyModeString = "EXAMINATION:${questionType.name}:$passed"
             val reviewSession = ReviewSession(
                 id = sessionId,
                 deckId = deckId,
@@ -229,9 +302,8 @@ class ExamSessionViewModel @Inject constructor(
                 incorrectCount = incorrectCount,
                 durationSeconds = timeTaken,
             )
-            reviewRepository.saveSessionWithEncodedMode(reviewSession, studyModeString)
+            reviewRepository.saveSessionWithEncodedMode(reviewSession, "EXAMINATION:${questionType.name}:$passed")
 
-            // Update daily statistics
             val today = LocalDate.now().format(dateFormatter)
             reviewRepository.recordStudyActivity(
                 date = today,
@@ -246,7 +318,6 @@ class ExamSessionViewModel @Inject constructor(
             it.copy(questions = questions, isSubmitted = true)
         }
 
-        // Store result state for ExamResultScreen via companion object
         pendingResultState = ExamResultUiState(
             deckTitle = _uiState.value.deckTitle,
             sessionId = sessionId,
@@ -256,10 +327,17 @@ class ExamSessionViewModel @Inject constructor(
             passed = passed,
             timeTakenSeconds = timeTaken,
             questions = questions,
-            previousConfig = "${state.questions.size}|${questionType.name}|${timeLimitMinutes ?: -1}",
+            previousConfig = "${state.questions.size}|${questionType.name}|${timeLimitMinutes ?: -1}|${state.writeDirection.name}",
         )
 
         return sessionId
+    }
+
+    private fun getExpectedAnswer(card: Flashcard, direction: WriteDirection): String {
+        return when (direction) {
+            WriteDirection.BACK -> card.backText
+            WriteDirection.FRONT -> card.frontText
+        }
     }
 
     private fun isWriteAnswerCorrect(userAnswer: String?, correctAnswer: String): Boolean {
@@ -292,6 +370,7 @@ class ExamSessionViewModel @Inject constructor(
     }
 
     fun onConfirmExit() {
+        ttsManager.stop()
         _uiState.update { it.copy(showExitDialog = false, isSubmitted = true) }
     }
 

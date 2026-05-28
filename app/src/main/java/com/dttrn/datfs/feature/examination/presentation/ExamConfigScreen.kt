@@ -98,11 +98,45 @@ fun ExamConfigScreen(
                                 QuestionType.MULTIPLE_CHOICE -> "4 lựa chọn, chọn đáp án đúng"
                                 QuestionType.WRITE -> "Tự gõ câu trả lời"
                                 QuestionType.MIXED -> "Ngẫu nhiên trắc nghiệm hoặc gõ đáp án"
-                                QuestionType.DICTATION -> "Nghe và gõ đáp án"
+                                QuestionType.DICTATION -> "Nghe âm thanh, gõ lại chính tả"
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                }
+            }
+
+            // Write direction sub-option (shown when WRITE or MIXED is selected)
+            if (uiState.questionType == QuestionType.WRITE || uiState.questionType == QuestionType.MIXED) {
+                Text(
+                    "Hướng gõ đáp án",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                WriteDirection.entries.forEach { direction ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = uiState.writeDirection == direction,
+                            onClick = { viewModel.onWriteDirectionChange(direction) },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(direction.displayName, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                when (direction) {
+                                    WriteDirection.BACK -> "Hiện mặt trước, gõ mặt sau (đáp án)"
+                                    WriteDirection.FRONT -> "Hiện mặt sau, gõ mặt trước (câu hỏi)"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
