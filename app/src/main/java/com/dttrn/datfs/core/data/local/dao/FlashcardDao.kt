@@ -155,8 +155,14 @@ interface FlashcardDao {
     fun getTodaysDueCount(todayEnd: Long): Flow<Int>
 
     @Query("""
-        SELECT COUNT(*) FROM flashcard_table 
+        SELECT COUNT(*) FROM flashcard_table
         WHERE dueDate <= :todayEnd AND isKnown = 0
     """)
     suspend fun getDueCardsCount(todayEnd: Long): Int
+
+    @Query("""
+        SELECT COUNT(*) FROM flashcard_table
+        WHERE deckId = :deckId AND dueDate IS NOT NULL AND dueDate <= :now AND isKnown = 0
+    """)
+    suspend fun getDueCardsCountForDeck(deckId: String, now: Long): Int
 }

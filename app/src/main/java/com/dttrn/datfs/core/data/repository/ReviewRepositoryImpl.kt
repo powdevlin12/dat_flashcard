@@ -36,6 +36,19 @@ class ReviewRepositoryImpl @Inject constructor(
         onFailure = { Result.Error(AppException.DatabaseException(it.message)) }
     )
 
+    override suspend fun saveSessionWithEncodedMode(
+        session: ReviewSession,
+        encodedMode: String,
+    ): Result<Unit> = runCatching {
+        reviewSessionDao.insertSession(session.toEntity().copy(studyMode = encodedMode))
+    }.fold(
+        onSuccess = { Result.Success(Unit) },
+        onFailure = { Result.Error(AppException.DatabaseException(it.message)) }
+    )
+
+    override suspend fun getSessionById(sessionId: String): ReviewSession? =
+        reviewSessionDao.getSessionById(sessionId)?.toDomain()
+
     override suspend fun getSessionsSince(fromTimeMs: Long): List<ReviewSession> =
         reviewSessionDao.getSessionsSince(fromTimeMs).map { it.toDomain() }
 

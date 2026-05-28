@@ -83,6 +83,9 @@ private val routesWithoutBottomBar = setOf(
     Screen.DeckDetail.route.substringBefore("{"),
     Screen.ImportExport.route,
     Screen.Backup.route,
+    Screen.ExamConfig.route.substringBefore("?"),
+    Screen.ExamSession.route.substringBefore("{"),
+    Screen.ExamResult.route.substringBefore("{"),
 )
 
 @Composable

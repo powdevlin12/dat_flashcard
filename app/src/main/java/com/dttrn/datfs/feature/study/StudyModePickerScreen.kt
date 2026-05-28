@@ -3,10 +3,13 @@ package com.dttrn.datfs.feature.study
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -54,6 +57,7 @@ fun StudyModePickerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -134,6 +138,15 @@ private val studyModes = listOf(
         description = "TTS đọc từ hoặc cụm từ, bạn gõ lại những gì nghe được. Luyện kỹ năng nghe và chính tả.",
         icon = Icons.Default.HeadsetMic,
         gradientColors = listOf(Color(0xFF009688), Color(0xFF00BCD4)),
+    ),
+    StudyModeInfo(
+        mode = StudyMode.EXAMINATION,
+        title = "Kiểm tra",
+        subtitle = "Đánh giá kiến thức",
+        description = "Làm bài kiểm tra đánh giá kiến thức với nhiều dạng câu hỏi, giới hạn thời gian và chấm điểm.",
+        icon = Icons.Default.Assignment,
+        gradientColors = listOf(Color(0xFF1565C0), Color(0xFF1E88E5)),
+        badge = "Mới",
     ),
 )
 

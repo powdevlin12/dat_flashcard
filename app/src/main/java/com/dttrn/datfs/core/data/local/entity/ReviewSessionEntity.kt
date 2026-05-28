@@ -46,7 +46,8 @@ enum class StudyMode(val displayName: String) {
     WRITE("Gõ đáp án"),
     QUIZ("Trắc nghiệm"),
     MATCH("Ghép đôi"),
-    DICTATION("Nghe chính tả");
+    DICTATION("Nghe chính tả"),
+    EXAMINATION("Kiểm tra");
 
     companion object {
         fun fromString(value: String) = entries.firstOrNull { it.name == value } ?: SPACED_REPETITION

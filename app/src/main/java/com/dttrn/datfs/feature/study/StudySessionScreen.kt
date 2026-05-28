@@ -225,6 +225,8 @@ fun StudySessionScreen(
                     isInputFocused = isWriteInputFocused,
                     onInputFocusChanged = { isWriteInputFocused = it },
                 )
+
+                else -> {}
             }
         }
     }
@@ -328,6 +330,7 @@ private fun modeLabel(mode: StudyMode) = when (mode) {
     StudyMode.WRITE -> "Viết"
     StudyMode.MATCH -> "Nối từ"
     StudyMode.DICTATION -> "Chính tả"
+    else -> {}
 }
 
 // ===== SWIPE / LEARN CONTENT =====
@@ -1638,6 +1641,7 @@ private fun KeyboardShortcutsBar(
                     }
                 }
                 StudyMode.MATCH -> {}
+                else -> {}
             }
             if (!isWriteInputFocused) {
                 add("P" to "Phát âm")

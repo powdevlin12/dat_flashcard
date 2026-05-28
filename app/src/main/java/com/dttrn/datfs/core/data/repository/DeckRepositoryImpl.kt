@@ -9,7 +9,7 @@ import com.dttrn.datfs.core.domain.model.Deck
 import com.dttrn.datfs.core.domain.repository.DeckRepository
 import com.dttrn.datfs.core.domain.repository.DeckSortOrder
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,25 +21,84 @@ class DeckRepositoryImpl @Inject constructor(
 ) : DeckRepository {
 
     override fun getActiveDecks(): Flow<List<Deck>> =
-        deckDao.getActiveDecks().map { list -> list.map { it.toDomain() } }
+        flow {
+            deckDao.getActiveDecks().collect { entities ->
+                val result = entities.map { entity ->
+                    val cardCount = deckDao.getCardCount(entity.id)
+                    val dueCount = flashcardDao.getDueCardsCountForDeck(entity.id, System.currentTimeMillis())
+                    entity.toDomain(cardCount = cardCount, dueCount = dueCount)
+                }
+                emit(result)
+            }
+        }
 
     override fun getArchivedDecks(): Flow<List<Deck>> =
-        deckDao.getArchivedDecks().map { list -> list.map { it.toDomain() } }
+        flow {
+            deckDao.getArchivedDecks().collect { entities ->
+                val result = entities.map { entity ->
+                    val cardCount = deckDao.getCardCount(entity.id)
+                    val dueCount = flashcardDao.getDueCardsCountForDeck(entity.id, System.currentTimeMillis())
+                    entity.toDomain(cardCount = cardCount, dueCount = dueCount)
+                }
+                emit(result)
+            }
+        }
 
     override fun getFavoriteDecks(): Flow<List<Deck>> =
-        deckDao.getFavoriteDecks().map { list -> list.map { it.toDomain() } }
+        flow {
+            deckDao.getFavoriteDecks().collect { entities ->
+                val result = entities.map { entity ->
+                    val cardCount = deckDao.getCardCount(entity.id)
+                    val dueCount = flashcardDao.getDueCardsCountForDeck(entity.id, System.currentTimeMillis())
+                    entity.toDomain(cardCount = cardCount, dueCount = dueCount)
+                }
+                emit(result)
+            }
+        }
 
     override fun getDeckById(deckId: String): Flow<Deck?> =
-        deckDao.getDeckById(deckId).map { it?.toDomain() }
+        flow {
+            deckDao.getDeckById(deckId).collect { entity ->
+                if (entity != null) {
+                    val cardCount = deckDao.getCardCount(deckId)
+                    val dueCount = flashcardDao.getDueCardsCountForDeck(deckId, System.currentTimeMillis())
+                    emit(entity.toDomain(cardCount = cardCount, dueCount = dueCount))
+                } else {
+                    emit(null)
+                }
+            }
+        }
 
     override fun searchDecks(query: String): Flow<List<Deck>> =
-        deckDao.searchDecks(query).map { list -> list.map { it.toDomain() } }
+        flow {
+            deckDao.searchDecks(query).collect { entities ->
+                val result = entities.map { entity ->
+                    val cardCount = deckDao.getCardCount(entity.id)
+                    val dueCount = flashcardDao.getDueCardsCountForDeck(entity.id, System.currentTimeMillis())
+                    entity.toDomain(cardCount = cardCount, dueCount = dueCount)
+                }
+                emit(result)
+            }
+        }
 
     override suspend fun searchDecksOnce(query: String): List<Deck> =
-        deckDao.searchDecksOnce(query).map { it.toDomain() }
+        deckDao.searchDecksOnce(query).map { entity ->
+            val cardCount = deckDao.getCardCount(entity.id)
+            val dueCount = flashcardDao.getDueCardsCountForDeck(entity.id, System.currentTimeMillis())
+            entity.toDomain(cardCount = cardCount, dueCount = dueCount)
+        }
 
     override fun getDecksFiltered(category: String?, sortBy: DeckSortOrder): Flow<List<Deck>> =
-        deckDao.getDecksFiltered(category, sortBy.name).map { list -> list.map { it.toDomain() } }
+        flow {
+            deckDao.getDecksFiltered(category, sortBy.name).collect { entities ->
+                val result = entities.map { entity ->
+                    val cardCount = deckDao.getCardCount(entity.id)
+                    val dueCount = flashcardDao.getDueCardsCountForDeck(entity.id, System.currentTimeMillis())
+                    entity.toDomain(cardCount = cardCount, dueCount = dueCount)
+                }
+                emit(result)
+            }
+        }
 
     override fun getCategories(): Flow<List<String>> = deckDao.getCategories()
 
@@ -127,7 +186,7 @@ class DeckRepositoryImpl @Inject constructor(
 }
 
 // ===== Mappers =====
-fun DeckEntity.toDomain() = Deck(
+fun DeckEntity.toDomain(cardCount: Int = 0, dueCount: Int = 0) = Deck(
     id = id,
     title = title,
     description = description,
@@ -137,6 +196,8 @@ fun DeckEntity.toDomain() = Deck(
     isFavorite = isFavorite,
     isArchived = isArchived,
     studyProgress = studyProgress,
+    cardCount = cardCount,
+    dueCount = dueCount,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

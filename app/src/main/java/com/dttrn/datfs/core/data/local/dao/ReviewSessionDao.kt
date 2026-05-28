@@ -29,6 +29,9 @@ interface ReviewSessionDao {
     """)
     suspend fun getAccuracyRateSince(fromTime: Long): Float?
 
+    @Query("SELECT * FROM review_session_table WHERE id = :sessionId")
+    suspend fun getSessionById(sessionId: String): ReviewSessionEntity?
+
     @Query("DELETE FROM review_session_table WHERE deckId = :deckId")
     suspend fun deleteSessionsByDeck(deckId: String)
 }

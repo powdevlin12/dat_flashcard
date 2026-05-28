@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.Flow
 interface ReviewRepository {
 
     suspend fun saveSession(session: ReviewSession): Result<Unit>
+    suspend fun saveSessionWithEncodedMode(session: ReviewSession, encodedMode: String): Result<Unit>
+    suspend fun getSessionById(sessionId: String): ReviewSession?
     suspend fun getSessionsSince(fromTimeMs: Long): List<ReviewSession>
 
     /** Upsert stats cho ngày hôm nay sau khi kết thúc phiên học */

@@ -42,7 +42,8 @@ class StudyQueue(
             StudyMode.WRITE,
             StudyMode.QUIZ,
             StudyMode.MATCH,
-            StudyMode.DICTATION -> if (shuffled) allCards.shuffled() else allCards
+            StudyMode.DICTATION,
+            StudyMode.EXAMINATION -> if (shuffled) allCards.shuffled() else allCards
         }
         _queue = ArrayDeque(sorted)
     }
@@ -93,10 +94,12 @@ class StudyQueue(
         ): StudyQueue {
             val now = System.currentTimeMillis()
             val filtered = when (mode) {
-                // LEARN và SPACED_REPETITION: lấy TẤT CẢ thẻ (không filter isKnown)
+                // LEARN, SPACED_REPETITION, EXAMINATION: lấy TẤT CẢ thẻ (không filter isKnown)
                 // để người dùng có thể chọn vị trí học bất kỳ trên bộ thẻ đầy đủ
+                // EXAMINATION kiểm tra toàn bộ kiến thức, không bỏ qua thẻ đã biết
                 StudyMode.LEARN,
-                StudyMode.SPACED_REPETITION -> {
+                StudyMode.SPACED_REPETITION,
+                StudyMode.EXAMINATION -> {
                     if (dueOnly) {
                         cards.filter { it.isNew || it.isDueBy(now) }
                     } else {
