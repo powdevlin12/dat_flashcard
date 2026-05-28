@@ -25,6 +25,10 @@ import com.dttrn.datfs.feature.onboarding.OnboardingScreen
 import com.dttrn.datfs.feature.settings.presentation.SettingsScreen
 import com.dttrn.datfs.feature.splash.SplashScreen
 import com.dttrn.datfs.feature.statistics.presentation.StatisticsScreen
+import com.dttrn.datfs.core.data.local.entity.StudyMode
+import com.dttrn.datfs.feature.examination.presentation.ExamConfigScreen
+import com.dttrn.datfs.feature.examination.presentation.ExamResultScreen
+import com.dttrn.datfs.feature.examination.presentation.ExamSessionScreen
 import com.dttrn.datfs.feature.study.StudyModePickerScreen
 import com.dttrn.datfs.feature.study.StudyResultScreen
 import com.dttrn.datfs.feature.study.StudySessionScreen
@@ -179,7 +183,11 @@ fun NavGraph(
                 deckTitle = "",  // Will be shown from DeckDetail context
                 onBack = { navController.popBackStack() },
                 onSelectMode = { mode ->
-                    navController.navigate(Screen.StudySession.createRoute(deckId, mode))
+                    if (mode == StudyMode.EXAMINATION) {
+                        navController.navigate(Screen.ExamConfig.createRoute(deckId))
+                    } else {
+                        navController.navigate(Screen.StudySession.createRoute(deckId, mode))
+                    }
                 },
             )
         }
@@ -223,6 +231,90 @@ fun NavGraph(
                     navController.navigate(Screen.StudyModePicker.createRoute(deckId)) {
                         popUpTo(Screen.StudyResult.route) { inclusive = true }
                     }
+                },
+            )
+        }
+
+        // ===== Exam Config =====
+        composable(
+            route = Screen.ExamConfig.route,
+            arguments = listOf(
+                navArgument(Screen.ExamConfig.ARG_DECK_ID) { type = NavType.StringType },
+                navArgument(Screen.ExamConfig.ARG_PREVIOUS_CONFIG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            )
+        ) { backStackEntry ->
+            val deckId = backStackEntry.arguments?.getString(Screen.ExamConfig.ARG_DECK_ID) ?: return@composable
+            val previousConfig = backStackEntry.arguments?.getString(Screen.ExamConfig.ARG_PREVIOUS_CONFIG)
+            ExamConfigScreen(
+                deckId = deckId,
+                previousConfig = previousConfig,
+                onStartExam = { questionCount, questionType, timeLimitMinutes, writeDirection ->
+                    navController.navigate(
+                        Screen.ExamSession.createRoute(deckId, questionCount, questionType, timeLimitMinutes, writeDirection)
+                    )
+                },
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+
+        // ===== Exam Session =====
+        composable(
+            route = Screen.ExamSession.route,
+            arguments = listOf(
+                navArgument(Screen.ExamSession.ARG_DECK_ID) { type = NavType.StringType },
+                navArgument(Screen.ExamSession.ARG_QUESTION_COUNT) { type = NavType.IntType },
+                navArgument(Screen.ExamSession.ARG_QUESTION_TYPE) { type = NavType.StringType },
+                navArgument(Screen.ExamSession.ARG_TIME_LIMIT_MINUTES) { type = NavType.IntType },
+                navArgument(Screen.ExamSession.ARG_WRITE_DIRECTION) { type = NavType.StringType },
+            )
+        ) { backStackEntry ->
+            val deckId = backStackEntry.arguments?.getString(Screen.ExamSession.ARG_DECK_ID) ?: return@composable
+            ExamSessionScreen(
+                onSubmitExam = { sessionId ->
+                    val previousConfig = backStackEntry.arguments?.getString(Screen.ExamResult.ARG_PREVIOUS_CONFIG) ?: ""
+                    navController.navigate(
+                        Screen.ExamResult.createRoute(deckId, sessionId, previousConfig)
+                    ) {
+                        popUpTo(Screen.ExamSession.route) { inclusive = true }
+                    }
+                },
+                onExit = { navController.popBackStack() },
+            )
+        }
+
+        // ===== Exam Result =====
+        composable(
+            route = Screen.ExamResult.route,
+            arguments = listOf(
+                navArgument(Screen.ExamResult.ARG_DECK_ID) { type = NavType.StringType },
+                navArgument(Screen.ExamResult.ARG_SESSION_ID) { type = NavType.StringType },
+                navArgument(Screen.ExamResult.ARG_PREVIOUS_CONFIG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            )
+        ) { backStackEntry ->
+            val deckId = backStackEntry.arguments?.getString(Screen.ExamResult.ARG_DECK_ID) ?: return@composable
+            val previousConfig = backStackEntry.arguments?.getString(Screen.ExamResult.ARG_PREVIOUS_CONFIG) ?: ""
+            ExamResultScreen(
+                previousConfig = previousConfig,
+                onRetry = { config ->
+                    navController.navigate(
+                        Screen.ExamConfig.createRoute(deckId, config)
+                    ) {
+                        popUpTo(Screen.ExamResult.route) { inclusive = true }
+                    }
+                },
+                onFinish = {
+                    navController.popBackStack(
+                        Screen.DeckDetail.createRoute(deckId),
+                        inclusive = false,
+                    )
                 },
             )
         }
