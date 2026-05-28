@@ -112,6 +112,12 @@ class StudySessionViewModel @Inject constructor(
             )
         }
         if (mode == StudyMode.QUIZ) generateQuizOptions(next)
+        if (mode == StudyMode.DICTATION) {
+            val text = if (_uiState.value.showFrontFirst) next.frontText else next.backText
+            ttsManager.setSpeed(_uiState.value.dictationSpeed)
+            ttsManager.speak(text)
+            _uiState.update { it.copy(dictationPlayCount = 1) }
+        }
     }
 
     // ===== SWIPE / LEARN ACTIONS =====
@@ -228,6 +234,53 @@ class StudySessionViewModel @Inject constructor(
     }
 
     fun onWriteAdvance() {
+        val correct = _uiState.value.isWriteCorrect ?: false
+        onRateCard(SM2Algorithm.Ratings.fromQuizAnswer(correct))
+    }
+
+    // ===== DICTATION ACTIONS =====
+
+    internal fun isDictationMatch(userAnswer: String, correctAnswer: String): Boolean {
+        val normalizedUser = userAnswer.trim()
+            .lowercase()
+            .replace(Regex("[\\p{Punct}]"), "")
+        val normalizedCorrect = correctAnswer.trim()
+            .lowercase()
+            .replace(Regex("[\\p{Punct}]"), "")
+        return normalizedUser == normalizedCorrect
+    }
+
+    fun onReplayDictation() {
+        val state = _uiState.value
+        val card = state.currentCard ?: return
+        val text = if (state.showFrontFirst) card.frontText else card.backText
+        ttsManager.setSpeed(state.dictationSpeed)
+        ttsManager.speak(text)
+        _uiState.update { it.copy(dictationPlayCount = it.dictationPlayCount + 1) }
+    }
+
+    fun onDictationSpeedChange(speed: Float) {
+        ttsManager.setSpeed(speed)
+        _uiState.update { it.copy(dictationSpeed = speed) }
+    }
+
+    fun onSubmitDictation() {
+        if (_uiState.value.isAnswerRevealed) return
+        val state = _uiState.value
+        val card = state.currentCard ?: return
+        val userAnswer = state.writeAnswer
+        val correctAnswer = if (state.showFrontFirst) card.backText else card.frontText
+        val isCorrect = isDictationMatch(userAnswer, correctAnswer)
+        _uiState.update {
+            it.copy(
+                isAnswerRevealed = true,
+                isWriteCorrect = isCorrect,
+                isCorrect = isCorrect,
+            )
+        }
+    }
+
+    fun onDictationAdvance() {
         val correct = _uiState.value.isWriteCorrect ?: false
         onRateCard(SM2Algorithm.Ratings.fromQuizAnswer(correct))
     }

@@ -127,6 +127,14 @@ private val studyModes = listOf(
         icon = Icons.Default.GridView,
         gradientColors = listOf(Color(0xFFFF6B6B), Color(0xFFFF8E53)),
     ),
+    StudyModeInfo(
+        mode = StudyMode.DICTATION,
+        title = "Nghe chính tả",
+        subtitle = "Luyện nghe & viết",
+        description = "TTS đọc từ hoặc cụm từ, bạn gõ lại những gì nghe được. Luyện kỹ năng nghe và chính tả.",
+        icon = Icons.Default.HeadsetMic,
+        gradientColors = listOf(Color(0xFF009688), Color(0xFF00BCD4)),
+    ),
 )
 
 @Composable

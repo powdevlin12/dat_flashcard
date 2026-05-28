@@ -28,6 +28,9 @@ data class StudySessionUiState(
     // Write specific
     val writeAnswer: String = "",
     val isWriteCorrect: Boolean? = null,
+    // Dictation specific
+    val dictationSpeed: Float = 1.0f,
+    val dictationPlayCount: Int = 0,
     // Match specific
     val matchItems: List<MatchItem> = emptyList(),
     val selectedMatchId: String? = null,

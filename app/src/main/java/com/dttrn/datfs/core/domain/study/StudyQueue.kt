@@ -41,7 +41,8 @@ class StudyQueue(
             StudyMode.LEARN -> allCards.sortedBy { it.orderIndex }
             StudyMode.WRITE,
             StudyMode.QUIZ,
-            StudyMode.MATCH -> if (shuffled) allCards.shuffled() else allCards
+            StudyMode.MATCH,
+            StudyMode.DICTATION -> if (shuffled) allCards.shuffled() else allCards
         }
         _queue = ArrayDeque(sorted)
     }
@@ -105,7 +106,8 @@ class StudyQueue(
                 // QUIZ, WRITE, MATCH: vẫn bỏ thẻ đã thuộc để thực hành hiệu quả hơn
                 StudyMode.QUIZ,
                 StudyMode.WRITE,
-                StudyMode.MATCH -> {
+                StudyMode.MATCH,
+                StudyMode.DICTATION -> {
                     if (dueOnly) {
                         cards.filter { !it.isKnown && (it.isNew || it.isDueBy(now)) }
                     } else {

@@ -130,8 +130,8 @@ fun StudySessionScreen(
                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                     if (uiState.showRangeDialog) return@onPreviewKeyEvent false
 
-                    // Tab toggles between input focus and shortcut mode (Write mode only)
-                    if (event.key == Key.Tab && viewModel.mode == StudyMode.WRITE && !uiState.isAnswerRevealed) {
+                    // Tab toggles between input focus and shortcut mode (Write/Dictation mode)
+                    if (event.key == Key.Tab && (viewModel.mode == StudyMode.WRITE || viewModel.mode == StudyMode.DICTATION) && !uiState.isAnswerRevealed) {
                         coroutineScope.launch {
                             if (isWriteInputFocused) {
                                 // Switch to shortcut mode
@@ -144,8 +144,8 @@ fun StudySessionScreen(
                         }
                         return@onPreviewKeyEvent true
                     }
-                    // Escape in Write mode when input focused → unfocus input first
-                    if (event.key == Key.Escape && viewModel.mode == StudyMode.WRITE && isWriteInputFocused) {
+                    // Escape in Write/Dictation mode when input focused → unfocus input first
+                    if (event.key == Key.Escape && (viewModel.mode == StudyMode.WRITE || viewModel.mode == StudyMode.DICTATION) && isWriteInputFocused) {
                         coroutineScope.launch {
                             isWriteInputFocused = false
                             focusRequester.requestFocus()
@@ -209,6 +209,21 @@ fun StudySessionScreen(
                 StudyMode.MATCH -> MatchContent(
                     uiState = uiState,
                     onItemClick = viewModel::onMatchItemClick,
+                )
+                StudyMode.DICTATION -> DictationContent(
+                    uiState = uiState,
+                    onAnswerChange = viewModel::onWriteAnswerChange,
+                    onSubmit = viewModel::onSubmitDictation,
+                    onAdvance = viewModel::onDictationAdvance,
+                    onReplay = viewModel::onReplayDictation,
+                    onSpeedChange = viewModel::onDictationSpeedChange,
+                    showFrontFirst = uiState.showFrontFirst,
+                    onToggleFrontFirst = viewModel::onToggleFrontFirst,
+                    ttsManager = viewModel.ttsManager,
+                    parentFocusRequester = focusRequester,
+                    inputFocusRequester = writeInputFocusRequester,
+                    isInputFocused = isWriteInputFocused,
+                    onInputFocusChanged = { isWriteInputFocused = it },
                 )
             }
         }
@@ -312,6 +327,7 @@ private fun modeLabel(mode: StudyMode) = when (mode) {
     StudyMode.QUIZ -> "Trắc nghiệm"
     StudyMode.WRITE -> "Viết"
     StudyMode.MATCH -> "Nối từ"
+    StudyMode.DICTATION -> "Chính tả"
 }
 
 // ===== SWIPE / LEARN CONTENT =====
@@ -813,6 +829,298 @@ private fun WriteContent(
     }
 }
 
+// ===== DICTATION CONTENT =====
+
+@Composable
+private fun DictationContent(
+    uiState: StudySessionUiState,
+    onAnswerChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onAdvance: () -> Unit,
+    onReplay: () -> Unit,
+    onSpeedChange: (Float) -> Unit,
+    showFrontFirst: Boolean,
+    onToggleFrontFirst: () -> Unit,
+    ttsManager: TtsManager,
+    parentFocusRequester: FocusRequester,
+    inputFocusRequester: FocusRequester,
+    isInputFocused: Boolean,
+    onInputFocusChanged: (Boolean) -> Unit,
+) {
+    val card = uiState.currentCard ?: return
+    val focusManager = LocalFocusManager.current
+    val ttsStatus by ttsManager.status.collectAsStateWithLifecycle()
+    val isSpeaking = ttsStatus == TtsManager.TtsStatus.SPEAKING
+
+    val correctAnswerText = if (showFrontFirst) card.backText else card.frontText
+    val listeningLabel = if (showFrontFirst) "Nghe từ và gõ lại" else "Nghe nghĩa và gõ lại"
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Front/Back toggle
+        FrontBackToggle(
+            showFrontFirst = showFrontFirst,
+            onToggle = onToggleFrontFirst,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+
+        // Listening indicator (replaces question card)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isSpeaking)
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                else
+                    MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(2.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val infiniteTransition = rememberInfiniteTransition(label = "dictation_wave")
+                val waveScale by infiniteTransition.animateFloat(
+                    initialValue = 0.8f,
+                    targetValue = 1.2f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(500, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                    label = "wave_scale",
+                )
+
+                Icon(
+                    imageVector = if (isSpeaking) Icons.Default.VolumeUp else Icons.Default.HeadsetMic,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .graphicsLayer {
+                            if (isSpeaking) {
+                                scaleX = waveScale
+                                scaleY = waveScale
+                            }
+                        },
+                    tint = if (isSpeaking) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = if (isSpeaking) "Đang đọc..." else "Nghe và gõ lại",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isSpeaking) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = listeningLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (uiState.dictationPlayCount > 1) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Đã nghe ${uiState.dictationPlayCount} lần",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Replay button + Speed slider
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FilledTonalButton(
+                onClick = onReplay,
+                enabled = ttsStatus != TtsManager.TtsStatus.ERROR,
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Icon(Icons.Default.Replay, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Nghe lại")
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Tốc độ: ${"%.1f".format(uiState.dictationSpeed)}x",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Slider(
+                    value = uiState.dictationSpeed,
+                    onValueChange = onSpeedChange,
+                    valueRange = 0.5f..2.0f,
+                    steps = 5,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Answer input + focus toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            OutlinedTextField(
+                value = uiState.writeAnswer,
+                onValueChange = { if (!uiState.isAnswerRevealed) onAnswerChange(it) },
+                label = { Text("Nhập những gì bạn nghe được") },
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(inputFocusRequester)
+                    .onFocusChanged { onInputFocusChanged(it.isFocused) },
+                enabled = !uiState.isAnswerRevealed,
+                isError = uiState.isWriteCorrect == false,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    focusManager.clearFocus()
+                    onSubmit()
+                    kotlinx.coroutines.MainScope().launch {
+                        kotlinx.coroutines.delay(100)
+                        parentFocusRequester.requestFocus()
+                    }
+                }),
+                minLines = 3,
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                ),
+            )
+
+            Spacer(Modifier.width(8.dp))
+
+            // Toggle focus: input ↔ shortcuts
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                FilledTonalIconButton(
+                    onClick = {
+                        if (isInputFocused) {
+                            focusManager.clearFocus()
+                            kotlinx.coroutines.MainScope().launch {
+                                kotlinx.coroutines.delay(100)
+                                parentFocusRequester.requestFocus()
+                            }
+                        } else {
+                            inputFocusRequester.requestFocus()
+                        }
+                    },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = if (isInputFocused)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Icon(
+                        imageVector = if (isInputFocused) Icons.Default.Keyboard
+                                      else Icons.Default.Edit,
+                        contentDescription = if (isInputFocused) "Chế độ phím tắt (Esc)"
+                                             else "Chế độ gõ chữ",
+                    )
+                }
+                Text(
+                    text = if (isInputFocused) "Phím tắt" else "Gõ chữ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 9.sp,
+                )
+            }
+        }
+
+        // Feedback
+        AnimatedVisibility(visible = uiState.isAnswerRevealed) {
+            Column {
+                Spacer(Modifier.height(12.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (uiState.isWriteCorrect == true)
+                            Color(0xFF4CAF50).copy(alpha = 0.1f)
+                        else Color(0xFFF44336).copy(alpha = 0.1f)
+                    )
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                if (uiState.isWriteCorrect == true) Icons.Default.CheckCircle
+                                else Icons.Default.Cancel,
+                                null,
+                                tint = if (uiState.isWriteCorrect == true) Color(0xFF4CAF50)
+                                else Color(0xFFF44336),
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (uiState.isWriteCorrect == true) "Chính xác!" else "Chưa đúng",
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        if (uiState.isWriteCorrect == false) {
+                            Spacer(Modifier.height(8.dp))
+                            Text("Đáp án đúng: ", style = MaterialTheme.typography.labelMedium)
+                            Text(correctAnswerText, fontWeight = FontWeight.Bold)
+                        } else {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Bạn đã nghe ${uiState.dictationPlayCount} lần",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        if (!uiState.isAnswerRevealed) {
+            Button(
+                onClick = {
+                    focusManager.clearFocus()
+                    onSubmit()
+                    kotlinx.coroutines.MainScope().launch {
+                        kotlinx.coroutines.delay(100)
+                        parentFocusRequester.requestFocus()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                enabled = uiState.writeAnswer.isNotBlank(),
+            ) {
+                Text("Kiểm tra", fontWeight = FontWeight.Bold)
+            }
+        } else {
+            Button(
+                onClick = onAdvance,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Text("Tiếp theo →", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
 // ===== MATCH CONTENT =====
 
 @Composable
@@ -1190,11 +1498,15 @@ private fun handleKeyEvent(
         Key.S -> { viewModel.onShuffleCards(); true }
         Key.F -> { viewModel.onShowRangeDialog(); true }
         Key.P -> {
-            if (isSwipeLearn || mode == StudyMode.WRITE) { viewModel.onSpeakWord(); true }
+            if (isSwipeLearn || mode == StudyMode.WRITE || mode == StudyMode.DICTATION) { viewModel.onSpeakWord(); true }
             else false
         }
         Key.T -> {
-            if (isSwipeLearn || mode == StudyMode.WRITE) { viewModel.onToggleFrontFirst(); true }
+            if (isSwipeLearn || mode == StudyMode.WRITE || mode == StudyMode.DICTATION) { viewModel.onToggleFrontFirst(); true }
+            else false
+        }
+        Key.R -> {
+            if (mode == StudyMode.DICTATION && !uiState.isAnswerRevealed) { viewModel.onReplayDictation(); true }
             else false
         }
 
@@ -1258,11 +1570,15 @@ private fun handleKeyEvent(
             } else false
         }
 
-        // === WRITE: Enter to submit/advance ===
+        // === WRITE/DICTATION: Enter to submit/advance ===
         Key.Enter -> {
             if (mode == StudyMode.WRITE) {
                 if (uiState.isAnswerRevealed) viewModel.onWriteAdvance()
                 else if (uiState.writeAnswer.isNotBlank()) viewModel.onSubmitWriteAnswer()
+                true
+            } else if (mode == StudyMode.DICTATION) {
+                if (uiState.isAnswerRevealed) viewModel.onDictationAdvance()
+                else if (uiState.writeAnswer.isNotBlank()) viewModel.onSubmitDictation()
                 true
             } else false
         }
@@ -1307,6 +1623,18 @@ private fun KeyboardShortcutsBar(
                     } else {
                         if (isAnswerRevealed) add("Enter" to "Tiếp")
                         else add("Enter" to "Kiểm tra")
+                    }
+                }
+                StudyMode.DICTATION -> {
+                    add("Tab" to if (isWriteInputFocused) "⌨ Phím tắt" else "✏ Gõ chữ")
+                    if (isWriteInputFocused) {
+                        add("Esc" to "Thoát gõ")
+                    } else {
+                        if (isAnswerRevealed) add("Enter" to "Tiếp")
+                        else {
+                            add("Enter" to "Kiểm tra")
+                            add("R" to "Nghe lại")
+                        }
                     }
                 }
                 StudyMode.MATCH -> {}

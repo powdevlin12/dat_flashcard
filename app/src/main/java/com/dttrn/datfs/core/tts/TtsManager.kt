@@ -67,6 +67,10 @@ class TtsManager @Inject constructor(
         tts?.speak(text.trim(), TextToSpeech.QUEUE_FLUSH, null, "tts_utterance")
     }
 
+    fun setSpeed(speed: Float) {
+        tts?.setSpeechRate(speed)
+    }
+
     /**
      * Dừng phát âm ngay lập tức.
      */
